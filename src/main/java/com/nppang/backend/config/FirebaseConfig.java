@@ -4,33 +4,40 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class FirebaseConfig {
-    private final String FIREBASE_CONFIG_PATH = "serviceAccountKey.json";
+
+    @Value("${FIREBASE_SERVICE_ACCOUNT_KEY}")
+    private String firebaseServiceAccountKey;
 
     @PostConstruct
     public void initialize() throws IOException {
-        try {
-            ClassPathResource resource = new ClassPathResource(FIREBASE_CONFIG_PATH);
+        if (FirebaseApp.getApps().isEmpty()) {
+            try {
+                InputStream serviceAccount = new ByteArrayInputStream(
+                        firebaseServiceAccountKey.getBytes(StandardCharsets.UTF_8));
 
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(resource.getInputStream()))
-                    .setDatabaseUrl("https://bookcycle-e8d43-default-rtdb.firebaseio.com/")
-                    .build();
+                FirebaseOptions options = FirebaseOptions.builder()
+                        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                        .setDatabaseUrl("https://bookcycle-e8d43-default-rtdb.firebaseio.com/")
+                        .build();
 
-            if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
-                System.out.println("Firebase Application initialized");
-            }
+                System.out.println("Firebase Application initialized via Environment Variable");
 
-        } catch (IOException e) {
-            System.err.println("Firebase 초기화 실패: " + e.getMessage());
-            throw new IOException("Failed to initialize Firebase Admin SDK", e);
+            } catch (Exception e) {
+                // IOException 대신 Exception으로 변경하여 모든 예외 처리
+                System.err.println("Firebase 초기화 실패: " + e.getMessage());
+                throw new IOException("Failed to initialize Firebase Admin SDK", e);
+            }
         }
     }
 }
