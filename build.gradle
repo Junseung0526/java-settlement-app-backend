@@ -47,6 +47,7 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-bootJar {
+tasks.named('bootJar') {
     mainClass = 'com.nppang.backend.BackendApplication'
+    archiveFileName = "app.jar"
 }
