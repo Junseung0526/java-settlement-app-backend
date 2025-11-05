@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>OCR 테스트</title>
+</head>
+<body>
+
+<h1>영수증 OCR 테스트</h1>
+<form id="ocrForm" enctype="multipart/form-data">
+    <input type="file" id="file" name="file" accept="image/*" required>
+    <button type="submit">텍스트 추출</button>
+</form>
+
+<h2>결과:</h2>
+<pre id="result"></pre>
+
+<h2>N빵 계산</h2>
+<form id="nppangForm">
+    <label for="totalAmount">총 금액:</label>
+    <input type="number" id="totalAmount" name="totalAmount" required><br>
+    <label for="alcoholAmount">주류 금액:</label>
+    <input type="number" id="alcoholAmount" name="alcoholAmount" required><br>
+    <label for="totalPeople">총 인원:</label>
+    <input type="number" id="totalPeople" name="totalPeople" required><br>
+    <label for="alcoholDrinkers">주류 인원:</label>
+    <input type="number" id="alcoholDrinkers" name="alcoholDrinkers" required><br>
+    <button type="submit">N빵 계산하기</button>
+</form>
+
+<h2>N빵 결과:</h2>
+<pre id="nppangResult"></pre>
+
+<script>
+    document.getElementById('ocrForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const fileInput = document.getElementById('file');
+        const resultElement = document.getElementById('result');
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        resultElement.textContent = '처리 중...';
+
+        fetch('/api/v1/ocr/receipt', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('네트워크 응답이 올바르지 않습니다.');
+            }
+            return response.json();
+        })
+        .then(data => {
+            resultElement.textContent = JSON.stringify(data, null, 2);
+            document.getElementById('totalAmount').value = data.totalAmount;
+            document.getElementById('alcoholAmount').value = data.alcoholAmount;
+        })
+        .catch(error => {
+            resultElement.textContent = '오류: ' + error.message;
+            console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
+        });
+    });
+
+    document.getElementById('nppangForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const totalAmount = document.getElementById('totalAmount').value;
+        const alcoholAmount = document.getElementById('alcoholAmount').value;
+        const totalPeople = document.getElementById('totalPeople').value;
+        const alcoholDrinkers = document.getElementById('alcoholDrinkers').value;
+        const nppangResultElement = document.getElementById('nppangResult');
+
+        const nppangRequest = {
+            totalAmount: totalAmount,
+            alcoholAmount: alcoholAmount,
+            totalPeople: totalPeople,
+            alcoholDrinkers: alcoholDrinkers
+        };
+
+        nppangResultElement.textContent = '계산 중...';
+
+        fetch('/api/v1/nppang/calculate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(nppangRequest)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('네트워크 응답이 올바르지 않습니다.');
+            }
+            return response.json();
+        })
+        .then(data => {
+            nppangResultElement.textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(error => {
+            nppangResultElement.textContent = '오류: ' + error.message;
+            console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -10,6 +10,7 @@ import lombok.ToString;
 public class ReceiptInfo {
     private String transactionDate;
     private Long totalAmount;
+    private Long alcoholAmount;
     private String storeName;
     private String rawText;
 }
