@@ -84,10 +84,9 @@ public class OcrService {
                             String priceStr = priceMatcher.group().replaceAll("[^0-9]", "");
                             alcoholAmount += Long.parseLong(priceStr);
                         } catch (NumberFormatException e) {
-                            // 금액을 파싱할 수 없는 경우 무시
                         }
                     }
-                    break; // 한 라인에 여러 주류 키워드가 있을 경우 중복 계산 방지
+                    break;
                 }
             }
         }
