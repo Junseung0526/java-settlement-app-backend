@@ -1,0 +1,16 @@
+spring:
+  profiles:
+    active: default
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+logging:
+  level:
+    org.springframework.web: INFO
+    org.springframework.web.multipart: DEBUG
+    org.apache.coyote.http11: INFO
+    com.nppang.backend: DEBUG
+    root: INFO
