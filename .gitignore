@@ -37,3 +37,4 @@ out/
 .vscode/
 serviceAccountKey.json
 application-local.yaml
+/src/main/java/com/nppang/backend/config/FirebaseConfig.java

@@ -13,7 +13,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("API Document")
-                        .description("영주증 ocr 인식을 통한 통합 분배 API")
+                        .description("영수증 ocr 인식을 통한 통합 분배 API")
                         .version("v1.0.0"));
     }
 }
