@@ -46,4 +46,8 @@ public class GroupService {
         UserGroup userGroup = userGroupRepository.findById(groupId).orElseThrow(() -> new IllegalArgumentException("Group not found"));
         return groupMemberRepository.findByUserGroup(userGroup);
     }
+
+    public List<UserGroup> getAllGroups() {
+        return userGroupRepository.findAll();
+    }
 }

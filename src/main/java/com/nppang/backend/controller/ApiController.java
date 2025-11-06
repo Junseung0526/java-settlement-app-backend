@@ -16,7 +16,9 @@ import com.nppang.backend.entity.UserGroup;
 import com.nppang.backend.service.GroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -86,6 +88,12 @@ public class ApiController {
     public ResponseEntity<UserGroup> createGroup(@RequestBody CreateGroupRequest request) {
         UserGroup group = groupService.createGroup(request.getName());
         return ResponseEntity.ok(group);
+    }
+
+    @GetMapping("/groups")
+    public ResponseEntity<List<UserGroup>> getAllGroups() {
+        List<UserGroup> groups = groupService.getAllGroups();
+        return ResponseEntity.ok(groups);
     }
 
     @PostMapping("/groups/{groupId}/members")
