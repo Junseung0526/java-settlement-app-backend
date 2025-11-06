@@ -34,7 +34,7 @@ public class OcrService {
         return parseReceiptText(rawText);
     }
 
-    /**
+    /*
      * 업로드된 이미지 파일에서 텍스트를 추출합니다.
      * @param file 영수증 이미지 파일
      * @return 추출된 텍스트
@@ -121,12 +121,6 @@ public class OcrService {
         }
 
         // DTO 빌드 및 반환
-        return ReceiptInfo.builder()
-                .totalAmount(totalAmount)
-                .alcoholAmount(alcoholAmount)
-                .transactionDate(transactionDate)
-                .storeName(storeName)
-                .rawText(rawText)
-                .build();
+        return ReceiptInfo.builder().totalAmount(totalAmount).alcoholAmount(alcoholAmount).transactionDate(transactionDate).storeName(storeName).rawText(rawText).build();
     }
 }

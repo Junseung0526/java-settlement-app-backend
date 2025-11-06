@@ -57,7 +57,7 @@ public class ApiController {
         } catch (TesseractException e) {
             logger.error("500 Internal Server Error: Tesseract OCR execution failed.", e);
             return ResponseEntity.internalServerError().body(
-                "Tesseract OCR Error: Tesseract engine configuration or tessdata path might be incorrect. Detail: " + e.getMessage()
+                    "Tesseract OCR Error: Tesseract engine configuration or tessdata path might be incorrect. Detail: " + e.getMessage()
             );
         } catch (Exception e) {
             logger.error("500 Internal Server Error: An unexpected error occurred.", e);

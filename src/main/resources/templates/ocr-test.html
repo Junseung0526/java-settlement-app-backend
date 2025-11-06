@@ -43,12 +43,12 @@
     let click_button = document.querySelector("#click-photo");
     let canvas = document.querySelector("#canvas");
 
-    camera_button.addEventListener('click', async function() {
-        let stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    camera_button.addEventListener('click', async function () {
+        let stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
         video.srcObject = stream;
     });
 
-    click_button.addEventListener('click', function() {
+    click_button.addEventListener('click', function () {
         canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
         let image_data_url = canvas.toDataURL('image/jpeg');
 
@@ -65,25 +65,25 @@
                     method: 'POST',
                     body: formData
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('네트워크 응답이 올바르지 않습니다.');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    resultElement.textContent = JSON.stringify(data, null, 2);
-                    document.getElementById('totalAmount').value = data.totalAmount;
-                    document.getElementById('alcoholAmount').value = data.alcoholAmount;
-                })
-                .catch(error => {
-                    resultElement.textContent = '오류: ' + error.message;
-                    console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
-                });
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('네트워크 응답이 올바르지 않습니다.');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        resultElement.textContent = JSON.stringify(data, null, 2);
+                        document.getElementById('totalAmount').value = data.totalAmount;
+                        document.getElementById('alcoholAmount').value = data.alcoholAmount;
+                    })
+                    .catch(error => {
+                        resultElement.textContent = '오류: ' + error.message;
+                        console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
+                    });
             });
     });
 
-    document.getElementById('ocrForm').addEventListener('submit', function(event) {
+    document.getElementById('ocrForm').addEventListener('submit', function (event) {
         event.preventDefault();
 
         const fileInput = document.getElementById('file');
@@ -97,24 +97,24 @@
             method: 'POST',
             body: formData
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('네트워크 응답이 올바르지 않습니다.');
-            }
-            return response.json();
-        })
-        .then(data => {
-            resultElement.textContent = JSON.stringify(data, null, 2);
-            document.getElementById('totalAmount').value = data.totalAmount;
-            document.getElementById('alcoholAmount').value = data.alcoholAmount;
-        })
-        .catch(error => {
-            resultElement.textContent = '오류: ' + error.message;
-            console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
-        });
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('네트워크 응답이 올바르지 않습니다.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultElement.textContent = JSON.stringify(data, null, 2);
+                document.getElementById('totalAmount').value = data.totalAmount;
+                document.getElementById('alcoholAmount').value = data.alcoholAmount;
+            })
+            .catch(error => {
+                resultElement.textContent = '오류: ' + error.message;
+                console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
+            });
     });
 
-    document.getElementById('nppangForm').addEventListener('submit', function(event) {
+    document.getElementById('nppangForm').addEventListener('submit', function (event) {
         event.preventDefault();
 
         const totalAmount = document.getElementById('totalAmount').value;
@@ -139,19 +139,19 @@
             },
             body: JSON.stringify(nppangRequest)
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('네트워크 응답이 올바르지 않습니다.');
-            }
-            return response.json();
-        })
-        .then(data => {
-            nppangResultElement.textContent = JSON.stringify(data, null, 2);
-        })
-        .catch(error => {
-            nppangResultElement.textContent = '오류: ' + error.message;
-            console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
-        });
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('네트워크 응답이 올바르지 않습니다.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                nppangResultElement.textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(error => {
+                nppangResultElement.textContent = '오류: ' + error.message;
+                console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
+            });
     });
 </script>
 
