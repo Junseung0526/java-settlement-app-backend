@@ -2,11 +2,11 @@ package com.nppang.backend.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.servers.Server; // Server 클래스 추가
+import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List; // List import 추가
+import java.util.List;
 
 @Configuration
 public class SwaggerConfig {

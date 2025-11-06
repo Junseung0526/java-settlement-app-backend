@@ -6,6 +6,12 @@
 </head>
 <body>
 
+<h1>실시간 영수증 OCR 테스트</h1>
+<button id="start-camera">카메라 시작</button>
+<video id="video" width="320" height="240" autoplay></video>
+<button id="click-photo">사진 찍기</button>
+<canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+
 <h1>영수증 OCR 테스트</h1>
 <form id="ocrForm" enctype="multipart/form-data">
     <input type="file" id="file" name="file" accept="image/*" required>
@@ -32,6 +38,51 @@
 <pre id="nppangResult"></pre>
 
 <script>
+    let camera_button = document.querySelector("#start-camera");
+    let video = document.querySelector("#video");
+    let click_button = document.querySelector("#click-photo");
+    let canvas = document.querySelector("#canvas");
+
+    camera_button.addEventListener('click', async function() {
+        let stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        video.srcObject = stream;
+    });
+
+    click_button.addEventListener('click', function() {
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        let image_data_url = canvas.toDataURL('image/jpeg');
+
+        // 데이터 URL을 Blob 객체로 변환
+        fetch(image_data_url)
+            .then(res => res.blob())
+            .then(blob => {
+                const formData = new FormData();
+                formData.append('file', blob, 'receipt.jpg');
+                const resultElement = document.getElementById('result');
+                resultElement.textContent = '처리 중...';
+
+                fetch('/api/v1/ocr/receipt', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('네트워크 응답이 올바르지 않습니다.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resultElement.textContent = JSON.stringify(data, null, 2);
+                    document.getElementById('totalAmount').value = data.totalAmount;
+                    document.getElementById('alcoholAmount').value = data.alcoholAmount;
+                })
+                .catch(error => {
+                    resultElement.textContent = '오류: ' + error.message;
+                    console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
+                });
+            });
+    });
+
     document.getElementById('ocrForm').addEventListener('submit', function(event) {
         event.preventDefault();
 

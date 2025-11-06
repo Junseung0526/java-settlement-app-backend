@@ -25,6 +25,7 @@ public class OcrService {
      * @param file 영수증 이미지 파일
      * @return 파싱된 영수증 정보 DTO
      */
+
     public ReceiptInfo doOcrAndParse(MultipartFile file) throws IOException, TesseractException {
         // 1. OCR 실행
         String rawText = doOcr(file);
@@ -38,6 +39,7 @@ public class OcrService {
      * @param file 영수증 이미지 파일
      * @return 추출된 텍스트
      */
+
     private String doOcr(MultipartFile file) throws IOException, TesseractException {
         File tempFile = convertMultipartFileToFile(file);
 
