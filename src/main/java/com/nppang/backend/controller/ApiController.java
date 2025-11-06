@@ -8,11 +8,16 @@ import com.nppang.backend.service.OcrService;
 import net.sourceforge.tess4j.TesseractException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.nppang.backend.dto.AddMemberRequest;
+import com.nppang.backend.dto.CreateGroupRequest;
+import com.nppang.backend.dto.NppangGroupRequest;
+import com.nppang.backend.entity.GroupMember;
+import com.nppang.backend.entity.UserGroup;
+import com.nppang.backend.service.GroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -22,10 +27,12 @@ public class ApiController {
 
     private final OcrService ocrService;
     private final NppangService nppangService;
+    private final GroupService groupService;
 
-    public ApiController(OcrService ocrService, NppangService nppangService) {
+    public ApiController(OcrService ocrService, NppangService nppangService, GroupService groupService) {
         this.ocrService = ocrService;
         this.nppangService = nppangService;
+        this.groupService = groupService;
     }
 
     /**
@@ -69,6 +76,34 @@ public class ApiController {
     public ResponseEntity<NppangResponse> calculateNppang(@RequestBody NppangRequest request) {
         try {
             NppangResponse response = nppangService.calculateNppang(request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PostMapping("/groups")
+    public ResponseEntity<UserGroup> createGroup(@RequestBody CreateGroupRequest request) {
+        UserGroup group = groupService.createGroup(request.getName());
+        return ResponseEntity.ok(group);
+    }
+
+    @PostMapping("/groups/{groupId}/members")
+    public ResponseEntity<GroupMember> addMemberToGroup(@PathVariable Long groupId, @RequestBody AddMemberRequest request) {
+        GroupMember groupMember = groupService.addMember(groupId, request.getUserId());
+        return ResponseEntity.ok(groupMember);
+    }
+
+    @GetMapping("/groups/{groupId}/members")
+    public ResponseEntity<List<GroupMember>> getGroupMembers(@PathVariable Long groupId) {
+        List<GroupMember> members = groupService.getGroupMembers(groupId);
+        return ResponseEntity.ok(members);
+    }
+
+    @PostMapping("/groups/{groupId}/calculate")
+    public ResponseEntity<NppangResponse> calculateNppangForGroup(@PathVariable Long groupId, @RequestBody NppangGroupRequest request) {
+        try {
+            NppangResponse response = nppangService.calculateNppangForGroup(groupId, request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(null);
