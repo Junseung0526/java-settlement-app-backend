@@ -5,6 +5,7 @@ import com.nppang.backend.dto.NppangResponse;
 import com.nppang.backend.dto.NppangGroupRequest;
 
 import com.nppang.backend.entity.Settlement;
+import com.nppang.backend.entity.Receipt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,10 +16,12 @@ import java.util.concurrent.CompletableFuture;
 public class NppangService {
 
     private final GroupService groupService;
+    private final SettlementService settlementService;
 
     @Autowired
-    public NppangService(GroupService groupService) {
+    public NppangService(GroupService groupService, SettlementService settlementService) {
         this.groupService = groupService;
+        this.settlementService = settlementService;
     }
 
     public NppangResponse calculateNppang(NppangRequest request) {
@@ -55,15 +58,23 @@ public class NppangService {
     }
 
     public CompletableFuture<NppangResponse> calculateNppangForSettlement(Settlement settlement, int alcoholDrinkers) {
-        long totalAmount = settlement.getReceipts().values().stream().mapToLong(r -> r.getTotalAmount() != null ? r.getTotalAmount() : 0).sum();
-        long alcoholAmount = settlement.getReceipts().values().stream().mapToLong(r -> r.getAlcoholAmount() != null ? r.getAlcoholAmount() : 0).sum();
-
         if (settlement.getGroupId() == null) {
             throw new IllegalStateException("Settlement is not associated with a group.");
         }
 
-        return groupService.getGroup(settlement.getGroupId()).thenApply(group -> {
-            int totalPeople = group.getMembers().size();
+        CompletableFuture<List<Receipt>> receiptsFuture = settlementService.getReceiptsForSettlement(settlement.getId());
+        CompletableFuture<com.nppang.backend.entity.UserGroup> groupFuture = groupService.getGroup(settlement.getGroupId());
+
+        return receiptsFuture.thenCombine(groupFuture, (receipts, group) -> {
+            long totalAmount = receipts.stream()
+                                .mapToLong(r -> r.getTotalAmount() != null ? r.getTotalAmount() : 0)
+                                .sum();
+
+            long alcoholAmount = receipts.stream()
+                                 .mapToLong(r -> r.getAlcoholAmount() != null ? r.getAlcoholAmount() : 0)
+                                 .sum();
+
+            int totalPeople = (group.getMembers() != null) ? group.getMembers().size() : 0;
 
             NppangRequest request = new NppangRequest();
             request.setTotalAmount(totalAmount);
@@ -74,9 +85,11 @@ public class NppangService {
             return calculateNppang(request);
         });
     }
+
     public CompletableFuture<NppangResponse> calculateNppangForGroup(String groupId, NppangGroupRequest request) {
         return groupService.getGroup(groupId).thenApply(group -> {
-            int totalPeople = group.getMembers().size();
+            // Null 체크 추가: group.getMembers()가 null일 경우 빈 Map으로 처리
+            int totalPeople = (group.getMembers() != null) ? group.getMembers().size() : 0;
 
             NppangRequest nppangRequest = new NppangRequest();
             nppangRequest.setTotalAmount(request.getTotalAmount());

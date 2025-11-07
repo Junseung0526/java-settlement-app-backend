@@ -1,18 +1,17 @@
 package com.nppang.backend.controller;
 
 import com.nppang.backend.dto.*;
-import com.nppang.backend.entity.Receipt;
 import com.nppang.backend.entity.Settlement;
 import com.nppang.backend.service.NppangService;
 import com.nppang.backend.service.SettlementService;
+
 import lombok.RequiredArgsConstructor;
-import net.sourceforge.tess4j.TesseractException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -25,18 +24,33 @@ public class SettlementController {
 
     @PostMapping
     public ResponseEntity<SettlementResponse> createSettlement(@RequestBody CreateSettlementRequest request) {
-        Settlement settlement = settlementService.createSettlement(request.getSettlementName(), request.getGroupId());
-        return ResponseEntity.ok(SettlementResponse.from(settlement));
+        try {
+            Settlement settlement = settlementService.createSettlement(request.getSettlementName(), request.getGroupId());
+            return ResponseEntity.ok(SettlementResponse.from(settlement));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(SettlementResponse.builder()
+                    .settlementId(null)
+                    .settlementName("Error creating settlement: " + e.getMessage())
+                    .totalAmount(0L)
+                    .alcoholAmount(0L)
+                    .receipts(Collections.emptyList())
+                    .build());
+        }
     }
 
     @PostMapping("/{settlementId}/receipts")
-    public ResponseEntity<AddReceiptResponse> addReceipt(
+    public CompletableFuture<ResponseEntity<AddReceiptResponse>> addReceipt(
             @PathVariable String settlementId,
-            @RequestParam("file") MultipartFile file) throws TesseractException, IOException, ExecutionException, InterruptedException {
+            @RequestParam("file") MultipartFile file) {
 
-        Receipt receipt = settlementService.addReceiptToSettlement(settlementId, file).get();
-        AddReceiptResponse response = new AddReceiptResponse(settlementId, receipt.getId(), ReceiptDto.from(receipt));
-        return ResponseEntity.ok(response);
+        return settlementService.addReceiptToSettlement(settlementId, file)
+                .thenApply(receipt ->
+                        new AddReceiptResponse(settlementId, receipt.getId(), ReceiptDto.from(receipt))
+                )
+                .thenApply(ResponseEntity::ok)
+                .exceptionally(ex -> {
+                    return ResponseEntity.status(500).body(null);
+                });
     }
 
     @GetMapping("/{settlementId}")

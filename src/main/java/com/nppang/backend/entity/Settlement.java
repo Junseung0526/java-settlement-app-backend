@@ -10,5 +10,5 @@ public class Settlement {
     private String id;
     private String name;
     private String groupId;
-    private Map<String, Receipt> receipts = new HashMap<>();
+    private Map<String, Receipt> receipts;
 }

@@ -9,6 +9,8 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true) // For mapping from ReceiptDto
 public class Receipt {
     private String id;
+    private String groupId; // Added for denormalization
+    private String settlementId; // Added for denormalization
     private String storeName;
     private String transactionDate;
     private Long totalAmount;

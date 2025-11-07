@@ -37,31 +37,50 @@ public class SettlementService {
         return settlement;
     }
 
-    public CompletableFuture<Receipt> addReceiptToSettlement(String settlementId, MultipartFile file) throws TesseractException, IOException {
-        DatabaseReference receiptsRef = firebaseDatabase.getReference("settlements").child(settlementId).child("receipts");
-        DatabaseReference newReceiptRef = receiptsRef.push();
-        String receiptId = newReceiptRef.getKey();
+    public CompletableFuture<Receipt> addReceiptToSettlement(String settlementId, MultipartFile file) {
+        CompletableFuture<Settlement> settlementFuture = getSettlement(settlementId);
 
-        ReceiptDto parsedInfo = ocrService.doOcrAndParse(file);
+        return settlementFuture.thenCompose(settlement -> {
+            if (settlement == null) {
+                CompletableFuture<Receipt> exceptionalFuture = new CompletableFuture<>();
+                exceptionalFuture.completeExceptionally(new RuntimeException("Settlement not found with id: " + settlementId));
+                return exceptionalFuture;
+            }
 
-        Receipt receipt = Receipt.builder()
-                .id(receiptId)
-                .storeName(parsedInfo.getStoreName())
-                .transactionDate(parsedInfo.getTransactionDate())
-                .totalAmount(parsedInfo.getTotalAmount())
-                .alcoholAmount(parsedInfo.getAlcoholAmount())
-                .rawText(parsedInfo.getRawText())
-                .build();
+            try {
+                String groupId = settlement.getGroupId();
+                DatabaseReference receiptsRef = firebaseDatabase.getReference("receipts");
+                DatabaseReference newReceiptRef = receiptsRef.push();
+                String receiptId = newReceiptRef.getKey();
 
-        CompletableFuture<Receipt> future = new CompletableFuture<>();
-        newReceiptRef.setValue(receipt, (databaseError, databaseReference) -> {
-            if (databaseError == null) {
-                future.complete(receipt);
-            } else {
-                future.completeExceptionally(databaseError.toException());
+                ReceiptDto parsedInfo = ocrService.doOcrAndParse(file);
+
+                Receipt receipt = Receipt.builder()
+                        .id(receiptId)
+                        .groupId(groupId)
+                        .settlementId(settlementId)
+                        .storeName(parsedInfo.getStoreName())
+                        .transactionDate(parsedInfo.getTransactionDate())
+                        .totalAmount(parsedInfo.getTotalAmount())
+                        .alcoholAmount(parsedInfo.getAlcoholAmount())
+                        .rawText(parsedInfo.getRawText())
+                        .build();
+
+                CompletableFuture<Receipt> saveFuture = new CompletableFuture<>();
+                newReceiptRef.setValue(receipt, (databaseError, databaseReference) -> {
+                    if (databaseError == null) {
+                        saveFuture.complete(receipt);
+                    } else {
+                        saveFuture.completeExceptionally(databaseError.toException());
+                    }
+                });
+                return saveFuture;
+            } catch (TesseractException | IOException e) {
+                CompletableFuture<Receipt> exceptionalFuture = new CompletableFuture<>();
+                exceptionalFuture.completeExceptionally(e);
+                return exceptionalFuture;
             }
         });
-        return future;
     }
 
     public CompletableFuture<Settlement> getSettlement(String settlementId) {
@@ -72,6 +91,27 @@ public class SettlementService {
             public void onDataChange(DataSnapshot dataSnapshot) {
                 Settlement settlement = dataSnapshot.getValue(Settlement.class);
                 future.complete(settlement);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                future.completeExceptionally(databaseError.toException());
+            }
+        });
+        return future;
+    }
+
+    public CompletableFuture<java.util.List<Receipt>> getReceiptsForSettlement(String settlementId) {
+        DatabaseReference receiptsRef = firebaseDatabase.getReference("receipts");
+        CompletableFuture<java.util.List<Receipt>> future = new CompletableFuture<>();
+        receiptsRef.orderByChild("settlementId").equalTo(settlementId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                java.util.List<Receipt> receipts = new java.util.ArrayList<>();
+                for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
+                    receipts.add(childSnapshot.getValue(Receipt.class));
+                }
+                future.complete(receipts);
             }
 
             @Override

@@ -4,5 +4,5 @@ import lombok.Getter;
 
 @Getter
 public class AddMemberRequest {
-    private String userId;
+    private String userName;
 }
