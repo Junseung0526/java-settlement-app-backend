@@ -12,6 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Base64;
 
 @Configuration
 public class FirebaseConfig {
@@ -37,12 +38,16 @@ public class FirebaseConfig {
 
                 serviceAccount = new FileInputStream(path);
                 System.out.println("Firebase: Initialized using local file path: " + path);
-            }
-
-            else {
-                byte[] jsonBytes = serviceAccountSource.getBytes();
-                serviceAccount = new ByteArrayInputStream(jsonBytes);
-                System.out.println("Firebase: Initialized using Raw JSON environment variable.");
+            } else {
+                try {
+                    byte[] decodedBytes = Base64.getDecoder().decode(serviceAccountSource);
+                    serviceAccount = new ByteArrayInputStream(decodedBytes);
+                    System.out.println("Firebase: Initialized using Base64 encoded JSON environment variable.");
+                } catch (IllegalArgumentException e) {
+                    byte[] jsonBytes = serviceAccountSource.getBytes();
+                    serviceAccount = new ByteArrayInputStream(jsonBytes);
+                    System.out.println("Firebase: Initialized using Raw JSON environment variable.");
+                }
             }
 
             FirebaseOptions options = FirebaseOptions.builder()
