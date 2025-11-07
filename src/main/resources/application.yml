@@ -1,3 +1,6 @@
+tesseract:
+  datapath: ${TESSERACT_DATAPATH:/usr/share/tessdata}
+
 spring:
   profiles:
     active: default
@@ -15,9 +18,6 @@ logging:
     com.nppang.backend: DEBUG
     root: INFO
 
-tesseract:
-  datapath: /usr/share/tessdata
-
 firebase:
-  service-account-source: ${FIREBASE_SERVICE_ACCOUNT_BASE64:file:local-placeholder}
+  service-account-source: ${FIREBASE_CREDENTIALS_JSON:file:local-placeholder}
   database-url: ${FIREBASE_DATABASE_URL:https://bookcycle-e8d43-default-rtdb.firebaseio.com/}
