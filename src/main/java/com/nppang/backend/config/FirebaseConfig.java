@@ -4,73 +4,60 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.FirebaseDatabase;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Base64;
 
 @Configuration
 public class FirebaseConfig {
-    @Value("${firebase.service-account-source}")
-    private String serviceAccountSource;
 
-    @Value("${firebase.database-url}")
-    private String databaseUrl;
+    // Railway Variables에 설정할 환경 변수 이름 정의
+    private static final String CREDENTIALS_VAR = "GOOGLE_APPLICATION_CREDENTIALS_JSON";
+    private static final String DATABASE_URL_VAR = "FIREBASE_DATABASE_URL";
 
     @Bean
     public FirebaseApp firebaseApp() {
+        String rawJson = System.getenv(CREDENTIALS_VAR);
+        String databaseUrl = System.getenv(DATABASE_URL_VAR);
 
-        System.out.println("FirebaseConfig: serviceAccountSource length: " + (serviceAccountSource != null ? serviceAccountSource.length() : "null"));
-        System.out.println("FirebaseConfig: serviceAccountSource starts with: " + (serviceAccountSource != null && serviceAccountSource.length() > 10 ? serviceAccountSource.substring(0, 10) : serviceAccountSource));
+        if (rawJson == null || rawJson.trim().isEmpty()) {
+            System.err.println("FATAL ERROR: Required environment variable '" + CREDENTIALS_VAR + "' is MISSING or EMPTY.");
+            throw new RuntimeException("Firebase initialization failed: Authentication JSON is missing in the environment. Please ensure " + CREDENTIALS_VAR + " is set correctly in Railway Variables.");
+        }
 
-        InputStream serviceAccount;
+        System.out.println("FirebaseConfig: Successfully read raw JSON data from " + CREDENTIALS_VAR + ".");
 
-        try {
-            if (serviceAccountSource.startsWith("file:")) {
-                String path = serviceAccountSource.substring("file:".length());
+        try (InputStream serviceAccount = new ByteArrayInputStream(rawJson.getBytes())) {
 
-                if (path.equals("local-placeholder")) {
-                    System.err.println("FATAL ERROR: FIREBASE_CREDENTIALS_JSON environment variable is MISSING.");
-                    throw new RuntimeException("Firebase initialization failed: Service account key is missing in Railway environment. Check FIREBASE_CREDENTIALS_JSON variable.");
-                }
+            FirebaseOptions.Builder optionsBuilder = FirebaseOptions.builder()
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount));
 
-                serviceAccount = new FileInputStream(path);
-                System.out.println("Firebase: Initialized using local file path: " + path);
-            } else {
-                try {
-                    byte[] decodedBytes = Base64.getDecoder().decode(serviceAccountSource);
-                    serviceAccount = new ByteArrayInputStream(decodedBytes);
-                    System.out.println("Firebase: Initialized using Base64 encoded JSON environment variable.");
-                } catch (IllegalArgumentException e) {
-                    byte[] jsonBytes = serviceAccountSource.getBytes();
-                    serviceAccount = new ByteArrayInputStream(jsonBytes);
-                    System.out.println("Firebase: Initialized using Raw JSON environment variable.");
-                }
+            if (databaseUrl != null && !databaseUrl.trim().isEmpty()) {
+                optionsBuilder.setDatabaseUrl(databaseUrl);
+                System.out.println("FirebaseConfig: Database URL set to " + databaseUrl);
             }
 
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setDatabaseUrl(databaseUrl)
-                    .build();
+            FirebaseOptions options = optionsBuilder.build();
 
             if (FirebaseApp.getApps().isEmpty()) {
-                return FirebaseApp.initializeApp(options);
+                FirebaseApp app = FirebaseApp.initializeApp(options);
+                System.out.println("Firebase Admin SDK initialized successfully.");
+                return app;
             } else {
                 return FirebaseApp.getInstance();
             }
+
         } catch (IOException e) {
-            System.err.println("FATAL ERROR: Failed to initialize Firebase Admin SDK due to invalid JSON structure.");
+            System.err.println("FATAL ERROR: Failed to read Raw JSON string. Check if the value of " + CREDENTIALS_VAR + " is valid JSON.");
             e.printStackTrace();
-            throw new RuntimeException("Firebase initialization failed.", e);
+            throw new RuntimeException("Firebase initialization failed due to JSON parsing error.", e);
         } catch (Exception e) {
-            System.err.println("FATAL ERROR: An unexpected error occurred during Firebase initialization.");
-            e.printStackTrace();
-            throw new RuntimeException("Firebase initialization failed.", e);
+             System.err.println("FATAL ERROR: An unexpected error occurred during Firebase initialization.");
+             e.printStackTrace();
+             throw new RuntimeException("Firebase initialization failed.", e);
         }
     }
 
