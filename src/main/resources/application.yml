@@ -18,18 +18,5 @@ logging:
 tesseract:
   datapath: /usr/share/tessdata
 
-# H2 Database
-  jpa:
-    hibernate:
-      ddl-auto: create # Automatically creates the schema
-    show-sql: true # Show SQL queries in logs
-  h2:
-    console:
-      enabled: true # Enable H2 console
-      path: /h2-console # Path to access H2 console
-  datasource:
-    url: jdbc:h2:mem:testdb # In-memory database
-    driverClassName: org.h2.Driver
-    username: sa
-    password: 
+
 
