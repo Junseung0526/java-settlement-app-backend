@@ -1,6 +1,6 @@
 package com.nppang.backend.service;
 
-import com.nppang.backend.dto.ReceiptInfo;
+import com.nppang.backend.dto.ReceiptDto;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
@@ -26,7 +26,7 @@ public class OcrService {
      * @return 파싱된 영수증 정보 DTO
      */
 
-    public ReceiptInfo doOcrAndParse(MultipartFile file) throws IOException, TesseractException {
+    public ReceiptDto doOcrAndParse(MultipartFile file) throws IOException, TesseractException {
         // 1. OCR 실행
         String rawText = doOcr(file);
 
@@ -63,8 +63,7 @@ public class OcrService {
         return convFile;
     }
 
-    //정규표현식 추출
-    private ReceiptInfo parseReceiptText(String rawText) {
+    private ReceiptDto parseReceiptText(String rawText) {
 
         Long totalAmount = null;
         String transactionDate = null;
@@ -117,10 +116,11 @@ public class OcrService {
             if (lines.length > 0 && !lines[0].trim().isEmpty()) {
                 storeName = lines[0].trim().replace(":", "").substring(0, Math.min(lines[0].trim().length(), 25)); // 상위 25자 제한
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
         }
 
         // DTO 빌드 및 반환
-        return ReceiptInfo.builder().totalAmount(totalAmount).alcoholAmount(alcoholAmount).transactionDate(transactionDate).storeName(storeName).rawText(rawText).build();
+        return ReceiptDto.builder().totalAmount(totalAmount).alcoholAmount(alcoholAmount).transactionDate(transactionDate).storeName(storeName).rawText(rawText).build();
     }
 }

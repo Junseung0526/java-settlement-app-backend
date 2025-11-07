@@ -2,157 +2,222 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>OCR 테스트</title>
+    <title>Nppang-Backend Test Page</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        fieldset { border: 1px solid #ccc; border-radius: 5px; padding: 1em; margin-bottom: 1em; }
+        legend { font-weight: bold; font-size: 1.2em; }
+        label { display: inline-block; width: 120px; margin-bottom: 0.5em; }
+        input[type="text"], input[type="number"] { width: 200px; padding: 5px; }
+        button { padding: 8px 15px; border-radius: 4px; border: none; background-color: #007bff; color: white; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #response { white-space: pre-wrap; background-color: #f4f4f4; border: 1px solid #ddd; padding: 1em; margin-top: 1em; min-height: 50px; }
+        .api-section { margin-bottom: 1.5em; }
+    </style>
 </head>
 <body>
 
-<h1>실시간 영수증 OCR 테스트</h1>
-<button id="start-camera">카메라 시작</button>
-<video id="video" width="320" height="240" autoplay></video>
-<button id="click-photo">사진 찍기</button>
-<canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+<h1>Nppang-Backend API Test Page</h1>
 
-<h1>영수증 OCR 테스트</h1>
-<form id="ocrForm" enctype="multipart/form-data">
-    <input type="file" id="file" name="file" accept="image/*" required>
-    <button type="submit">텍스트 추출</button>
-</form>
+<fieldset>
+    <legend>1. Group Management</legend>
+    <div class="api-section">
+        <h3>Create Group</h3>
+        <label for="groupName">Group Name:</label>
+        <input type="text" id="groupName" value="테스트 그룹">
+        <button id="createGroupBtn">Create Group</button>
+    </div>
+    <div class="api-section">
+        <h3>Add Member to Group</h3>
+        <label for="addMemberGroupId">Group ID:</label>
+        <input type="number" id="addMemberGroupId" placeholder="Group ID">
+        <label for="userId">User ID:</label>
+        <input type="number" id="userId" value="1">
+        <button id="addMemberBtn">Add Member</button>
+    </div>
+    <div class="api-section">
+        <h3>Get All Groups</h3>
+        <button id="getAllGroupsBtn">Get Groups</button>
+    </div>
+    <div class="api-section">
+        <h3>Get Group Members</h3>
+        <label for="getMembersGroupId">Group ID:</label>
+        <input type="number" id="getMembersGroupId" placeholder="Group ID">
+        <button id="getMembersBtn">Get Members</button>
+    </div>
+</fieldset>
 
-<h2>결과:</h2>
-<pre id="result"></pre>
+<fieldset>
+    <legend>2. Settlement Management</legend>
+    <div class="api-section">
+        <h3>Create Settlement</h3>
+        <label for="settlementName">Settlement Name:</label>
+        <input type="text" id="settlementName" value="오늘의 저녁 식사">
+        <label for="settlementGroupId">Group ID (Optional):</label>
+        <input type="number" id="settlementGroupId" placeholder="Group ID for this settlement">
+        <button id="createSettlementBtn">Create Settlement</button>
+    </div>
+    <div class="api-section">
+        <h3>Add Receipt to Settlement</h3>
+        <label for="receiptSettlementId">Settlement ID:</label>
+        <input type="number" id="receiptSettlementId" placeholder="Settlement ID">
+        <label for="receiptFile">Receipt Image:</label>
+        <input type="file" id="receiptFile" accept="image/*">
+        <button id="addReceiptBtn">Add Receipt</button>
+    </div>
+    <div class="api-section">
+        <h3>Get Settlement Details</h3>
+        <label for="getSettlementId">Settlement ID:</label>
+        <input type="number" id="getSettlementId" placeholder="Settlement ID">
+        <button id="getSettlementBtn">Get Settlement</button>
+    </div>
+</fieldset>
 
-<h2>N빵 계산</h2>
-<form id="nppangForm">
-    <label for="totalAmount">총 금액:</label>
-    <input type="number" id="totalAmount" name="totalAmount" required><br>
-    <label for="alcoholAmount">주류 금액:</label>
-    <input type="number" id="alcoholAmount" name="alcoholAmount" required><br>
-    <label for="totalPeople">총 인원:</label>
-    <input type="number" id="totalPeople" name="totalPeople" required><br>
-    <label for="alcoholDrinkers">주류 인원:</label>
-    <input type="number" id="alcoholDrinkers" name="alcoholDrinkers" required><br>
-    <button type="submit">N빵 계산하기</button>
-</form>
+<fieldset>
+    <legend>3. Calculation</legend>
+    <div class="api-section">
+        <h3>Calculate Settlement</h3>
+        <label for="calcSettlementId">Settlement ID:</label>
+        <input type="number" id="calcSettlementId" placeholder="Settlement ID">
+        <label for="calcAlcoholDrinkers">Alcohol Drinkers:</label>
+        <input type="number" id="calcAlcoholDrinkers" value="0">
+        <button id="calculateBtn">Calculate</button>
+    </div>
+</fieldset>
 
-<h2>N빵 결과:</h2>
-<pre id="nppangResult"></pre>
+<h2>API Response:</h2>
+<pre id="response">API results will be shown here.</pre>
 
 <script>
-    let camera_button = document.querySelector("#start-camera");
-    let video = document.querySelector("#video");
-    let click_button = document.querySelector("#click-photo");
-    let canvas = document.querySelector("#canvas");
+    const responseEl = document.getElementById('response');
 
-    camera_button.addEventListener('click', async function () {
-        let stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
-        video.srcObject = stream;
-    });
+    // Helper function for fetch
+    async function apiCall(url, options = {}, message) {
+        responseEl.textContent = message || 'Processing...';
+        try {
+            const response = await fetch(url, options);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Request failed');
+            }
+            responseEl.textContent = JSON.stringify(data, null, 2);
+            return data;
+        } catch (error) {
+            responseEl.textContent = `Error: ${error.message}
 
-    click_button.addEventListener('click', function () {
-        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-        let image_data_url = canvas.toDataURL('image/jpeg');
+${error.stack || ''}`;
+            console.error(error);
+        }
+    }
 
-        // 데이터 URL을 Blob 객체로 변환
-        fetch(image_data_url)
-            .then(res => res.blob())
-            .then(blob => {
-                const formData = new FormData();
-                formData.append('file', blob, 'receipt.jpg');
-                const resultElement = document.getElementById('result');
-                resultElement.textContent = '처리 중...';
+    // 1. Group Management
+    document.getElementById('createGroupBtn').onclick = async () => {
+        const groupName = document.getElementById('groupName').value;
+        const data = await apiCall('/api/v1/groups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: groupName })
+        }, 'Creating group...');
+        if (data) {
+            document.getElementById('addMemberGroupId').value = data.id;
+            document.getElementById('getMembersGroupId').value = data.id;
+            document.getElementById('settlementGroupId').value = data.id;
+        }
+    };
 
-                fetch('/api/v1/ocr/receipt', {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('네트워크 응답이 올바르지 않습니다.');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        resultElement.textContent = JSON.stringify(data, null, 2);
-                        document.getElementById('totalAmount').value = data.totalAmount;
-                        document.getElementById('alcoholAmount').value = data.alcoholAmount;
-                    })
-                    .catch(error => {
-                        resultElement.textContent = '오류: ' + error.message;
-                        console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
-                    });
-            });
-    });
+    document.getElementById('addMemberBtn').onclick = () => {
+        const groupId = document.getElementById('addMemberGroupId').value;
+        const userId = document.getElementById('userId').value;
+        if (!groupId) {
+            alert('Please provide a Group ID.');
+            return;
+        }
+        apiCall(`/api/v1/groups/${groupId}/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: userId })
+        }, `Adding member to group ${groupId}...`);
+    };
 
-    document.getElementById('ocrForm').addEventListener('submit', function (event) {
-        event.preventDefault();
+    document.getElementById('getAllGroupsBtn').onclick = () => {
+        apiCall('/api/v1/groups', {}, 'Fetching all groups...');
+    };
 
-        const fileInput = document.getElementById('file');
-        const resultElement = document.getElementById('result');
+    document.getElementById('getMembersBtn').onclick = () => {
+        const groupId = document.getElementById('getMembersGroupId').value;
+        if (!groupId) {
+            alert('Please provide a Group ID.');
+            return;
+        }
+        apiCall(`/api/v1/groups/${groupId}/members`, {}, `Fetching members for group ${groupId}...`);
+    };
+
+    // 2. Settlement Management
+    document.getElementById('createSettlementBtn').onclick = async () => {
+        const settlementName = document.getElementById('settlementName').value;
+        const groupId = document.getElementById('settlementGroupId').value;
+        const body = { settlementName };
+        if (groupId) {
+            body.groupId = groupId;
+        }
+        const data = await apiCall('/api/v1/settlements', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        }, 'Creating settlement...');
+        if (data) {
+            const settlementId = data.settlementId;
+            document.getElementById('receiptSettlementId').value = settlementId;
+            document.getElementById('getSettlementId').value = settlementId;
+            document.getElementById('calcSettlementId').value = settlementId;
+        }
+    };
+
+    document.getElementById('addReceiptBtn').onclick = () => {
+        const settlementId = document.getElementById('receiptSettlementId').value;
+        const fileInput = document.getElementById('receiptFile');
+        if (!settlementId) {
+            alert('Please provide a Settlement ID.');
+            return;
+        }
+        if (fileInput.files.length === 0) {
+            alert('Please select a receipt image file.');
+            return;
+        }
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
 
-        resultElement.textContent = '처리 중...';
-
-        fetch('/api/v1/ocr/receipt', {
+        apiCall(`/api/v1/settlements/${settlementId}/receipts`, {
             method: 'POST',
             body: formData
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('네트워크 응답이 올바르지 않습니다.');
-                }
-                return response.json();
-            })
-            .then(data => {
-                resultElement.textContent = JSON.stringify(data, null, 2);
-                document.getElementById('totalAmount').value = data.totalAmount;
-                document.getElementById('alcoholAmount').value = data.alcoholAmount;
-            })
-            .catch(error => {
-                resultElement.textContent = '오류: ' + error.message;
-                console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
-            });
-    });
+        }, `Adding receipt to settlement ${settlementId}...`);
+    };
 
-    document.getElementById('nppangForm').addEventListener('submit', function (event) {
-        event.preventDefault();
+    document.getElementById('getSettlementBtn').onclick = () => {
+        const settlementId = document.getElementById('getSettlementId').value;
+        if (!settlementId) {
+            alert('Please provide a Settlement ID.');
+            return;
+        }
+        apiCall(`/api/v1/settlements/${settlementId}`, {}, `Fetching details for settlement ${settlementId}...`);
+    };
 
-        const totalAmount = document.getElementById('totalAmount').value;
-        const alcoholAmount = document.getElementById('alcoholAmount').value;
-        const totalPeople = document.getElementById('totalPeople').value;
-        const alcoholDrinkers = document.getElementById('alcoholDrinkers').value;
-        const nppangResultElement = document.getElementById('nppangResult');
-
-        const nppangRequest = {
-            totalAmount: totalAmount,
-            alcoholAmount: alcoholAmount,
-            totalPeople: totalPeople,
-            alcoholDrinkers: alcoholDrinkers
-        };
-
-        nppangResultElement.textContent = '계산 중...';
-
-        fetch('/api/v1/nppang/calculate', {
+    // 3. Calculation
+    document.getElementById('calculateBtn').onclick = () => {
+        const settlementId = document.getElementById('calcSettlementId').value;
+        const alcoholDrinkers = document.getElementById('calcAlcoholDrinkers').value;
+        if (!settlementId) {
+            alert('Please provide a Settlement ID.');
+            return;
+        }
+        apiCall(`/api/v1/settlements/${settlementId}/calculate`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(nppangRequest)
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('네트워크 응답이 올바르지 않습니다.');
-                }
-                return response.json();
-            })
-            .then(data => {
-                nppangResultElement.textContent = JSON.stringify(data, null, 2);
-            })
-            .catch(error => {
-                nppangResultElement.textContent = '오류: ' + error.message;
-                console.error('데이터를 가져오는 중 문제가 발생했습니다:', error);
-            });
-    });
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ alcoholDrinkers: parseInt(alcoholDrinkers) })
+        }, `Calculating settlement ${settlementId}...`);
+    };
+
 </script>
 
 </body>

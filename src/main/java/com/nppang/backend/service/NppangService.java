@@ -4,6 +4,7 @@ import com.nppang.backend.dto.NppangRequest;
 import com.nppang.backend.dto.NppangResponse;
 import com.nppang.backend.dto.NppangGroupRequest;
 import com.nppang.backend.entity.GroupMember;
+import com.nppang.backend.entity.Settlement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -50,6 +51,26 @@ public class NppangService {
         long amountForAlcoholDrinker = commonAmountPerPerson + alcoholAmountPerDrinker;
 
         return new NppangResponse(amountPerPerson, amountForAlcoholDrinker);
+    }
+
+    public NppangResponse calculateNppangForSettlement(Settlement settlement, int alcoholDrinkers) {
+        long totalAmount = settlement.getReceipts().stream().mapToLong(r -> r.getTotalAmount() != null ? r.getTotalAmount() : 0).sum();
+        long alcoholAmount = settlement.getReceipts().stream().mapToLong(r -> r.getAlcoholAmount() != null ? r.getAlcoholAmount() : 0).sum();
+
+        int totalPeople;
+        if (settlement.getUserGroup() != null) {
+            totalPeople = groupService.getGroupMembers(settlement.getUserGroup().getId()).size();
+        } else {
+            throw new IllegalStateException("Settlement is not associated with a group.");
+        }
+
+        NppangRequest request = new NppangRequest();
+        request.setTotalAmount(totalAmount);
+        request.setAlcoholAmount(alcoholAmount);
+        request.setTotalPeople(totalPeople);
+        request.setAlcoholDrinkers(alcoholDrinkers);
+
+        return calculateNppang(request);
     }
 
     public NppangResponse calculateNppangForGroup(Long groupId, NppangGroupRequest request) {
