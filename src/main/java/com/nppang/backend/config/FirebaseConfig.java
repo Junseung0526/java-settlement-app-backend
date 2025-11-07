@@ -25,6 +25,9 @@ public class FirebaseConfig {
     @Bean
     public FirebaseApp firebaseApp() {
 
+        System.out.println("FirebaseConfig: serviceAccountSource length: " + (serviceAccountSource != null ? serviceAccountSource.length() : "null"));
+        System.out.println("FirebaseConfig: serviceAccountSource starts with: " + (serviceAccountSource != null && serviceAccountSource.length() > 10 ? serviceAccountSource.substring(0, 10) : serviceAccountSource));
+
         InputStream serviceAccount;
 
         try {
