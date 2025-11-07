@@ -19,7 +19,5 @@ tesseract:
   datapath: /usr/share/tessdata
 
 firebase:
-  service-account-source: ${FIREBASE_SERVICE_ACCOUNT_BASE64}
-  database-url: ${FIREBASE_DATABASE_URL}
-
-
+  service-account-source: ${FIREBASE_SERVICE_ACCOUNT_BASE64:file:local-placeholder}
+  database-url: ${FIREBASE_DATABASE_URL:https://bookcycle-e8d43-default-rtdb.firebaseio.com/}
