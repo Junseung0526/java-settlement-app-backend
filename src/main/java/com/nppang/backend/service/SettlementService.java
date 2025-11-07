@@ -1,54 +1,51 @@
 package com.nppang.backend.service;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.nppang.backend.dto.ReceiptDto;
 import com.nppang.backend.entity.Receipt;
 import com.nppang.backend.entity.Settlement;
-import com.nppang.backend.entity.UserGroup;
-import com.nppang.backend.repository.ReceiptRepository;
-import com.nppang.backend.repository.SettlementRepository;
-import com.nppang.backend.repository.UserGroupRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import net.sourceforge.tess4j.TesseractException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class SettlementService {
 
-    private final SettlementRepository settlementRepository;
-    private final ReceiptRepository receiptRepository;
-    private final UserGroupRepository userGroupRepository;
+    private final FirebaseDatabase firebaseDatabase;
     private final OcrService ocrService;
 
-    @Transactional
-    public Settlement createSettlement(String settlementName, Long groupId) {
-        UserGroup userGroup = null;
-        if (groupId != null) {
-            userGroup = userGroupRepository.findById(groupId)
-                    .orElseThrow(() -> new EntityNotFoundException("Group not found with id: " + groupId));
-        }
+    public Settlement createSettlement(String settlementName, String groupId) {
+        DatabaseReference settlementsRef = firebaseDatabase.getReference("settlements");
+        DatabaseReference newSettlementRef = settlementsRef.push();
+        String settlementId = newSettlementRef.getKey();
 
         Settlement settlement = new Settlement();
+        settlement.setId(settlementId);
         settlement.setName(settlementName);
-        settlement.setUserGroup(userGroup);
-        return settlementRepository.save(settlement);
+        settlement.setGroupId(groupId);
+
+        newSettlementRef.setValueAsync(settlement);
+        return settlement;
     }
 
-    @Transactional
-    public Receipt addReceiptToSettlement(Long settlementId, MultipartFile file) throws TesseractException, IOException {
-        Settlement settlement = settlementRepository.findById(settlementId)
-                .orElseThrow(() -> new EntityNotFoundException("Settlement not found with id: " + settlementId));
+    public CompletableFuture<Receipt> addReceiptToSettlement(String settlementId, MultipartFile file) throws TesseractException, IOException {
+        DatabaseReference receiptsRef = firebaseDatabase.getReference("settlements").child(settlementId).child("receipts");
+        DatabaseReference newReceiptRef = receiptsRef.push();
+        String receiptId = newReceiptRef.getKey();
 
         ReceiptDto parsedInfo = ocrService.doOcrAndParse(file);
 
         Receipt receipt = Receipt.builder()
-                .settlement(settlement)
+                .id(receiptId)
                 .storeName(parsedInfo.getStoreName())
                 .transactionDate(parsedInfo.getTransactionDate())
                 .totalAmount(parsedInfo.getTotalAmount())
@@ -56,11 +53,32 @@ public class SettlementService {
                 .rawText(parsedInfo.getRawText())
                 .build();
 
-        return receiptRepository.save(receipt);
+        CompletableFuture<Receipt> future = new CompletableFuture<>();
+        newReceiptRef.setValue(receipt, (databaseError, databaseReference) -> {
+            if (databaseError == null) {
+                future.complete(receipt);
+            } else {
+                future.completeExceptionally(databaseError.toException());
+            }
+        });
+        return future;
     }
 
-    public Settlement getSettlement(Long settlementId) {
-        return settlementRepository.findById(settlementId)
-                .orElseThrow(() -> new EntityNotFoundException("Settlement not found with id: " + settlementId));
+    public CompletableFuture<Settlement> getSettlement(String settlementId) {
+        DatabaseReference settlementRef = firebaseDatabase.getReference("settlements").child(settlementId);
+        CompletableFuture<Settlement> future = new CompletableFuture<>();
+        settlementRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Settlement settlement = dataSnapshot.getValue(Settlement.class);
+                future.complete(settlement);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                future.completeExceptionally(databaseError.toException());
+            }
+        });
+        return future;
     }
 }

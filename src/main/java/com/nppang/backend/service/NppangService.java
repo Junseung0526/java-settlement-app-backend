@@ -3,12 +3,13 @@ package com.nppang.backend.service;
 import com.nppang.backend.dto.NppangRequest;
 import com.nppang.backend.dto.NppangResponse;
 import com.nppang.backend.dto.NppangGroupRequest;
-import com.nppang.backend.entity.GroupMember;
+
 import com.nppang.backend.entity.Settlement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class NppangService {
@@ -53,36 +54,37 @@ public class NppangService {
         return new NppangResponse(amountPerPerson, amountForAlcoholDrinker);
     }
 
-    public NppangResponse calculateNppangForSettlement(Settlement settlement, int alcoholDrinkers) {
-        long totalAmount = settlement.getReceipts().stream().mapToLong(r -> r.getTotalAmount() != null ? r.getTotalAmount() : 0).sum();
-        long alcoholAmount = settlement.getReceipts().stream().mapToLong(r -> r.getAlcoholAmount() != null ? r.getAlcoholAmount() : 0).sum();
+    public CompletableFuture<NppangResponse> calculateNppangForSettlement(Settlement settlement, int alcoholDrinkers) {
+        long totalAmount = settlement.getReceipts().values().stream().mapToLong(r -> r.getTotalAmount() != null ? r.getTotalAmount() : 0).sum();
+        long alcoholAmount = settlement.getReceipts().values().stream().mapToLong(r -> r.getAlcoholAmount() != null ? r.getAlcoholAmount() : 0).sum();
 
-        int totalPeople;
-        if (settlement.getUserGroup() != null) {
-            totalPeople = groupService.getGroupMembers(settlement.getUserGroup().getId()).size();
-        } else {
+        if (settlement.getGroupId() == null) {
             throw new IllegalStateException("Settlement is not associated with a group.");
         }
 
-        NppangRequest request = new NppangRequest();
-        request.setTotalAmount(totalAmount);
-        request.setAlcoholAmount(alcoholAmount);
-        request.setTotalPeople(totalPeople);
-        request.setAlcoholDrinkers(alcoholDrinkers);
+        return groupService.getGroup(settlement.getGroupId()).thenApply(group -> {
+            int totalPeople = group.getMembers().size();
 
-        return calculateNppang(request);
+            NppangRequest request = new NppangRequest();
+            request.setTotalAmount(totalAmount);
+            request.setAlcoholAmount(alcoholAmount);
+            request.setTotalPeople(totalPeople);
+            request.setAlcoholDrinkers(alcoholDrinkers);
+
+            return calculateNppang(request);
+        });
     }
+    public CompletableFuture<NppangResponse> calculateNppangForGroup(String groupId, NppangGroupRequest request) {
+        return groupService.getGroup(groupId).thenApply(group -> {
+            int totalPeople = group.getMembers().size();
 
-    public NppangResponse calculateNppangForGroup(Long groupId, NppangGroupRequest request) {
-        List<GroupMember> groupMembers = groupService.getGroupMembers(groupId);
-        int totalPeople = groupMembers.size();
+            NppangRequest nppangRequest = new NppangRequest();
+            nppangRequest.setTotalAmount(request.getTotalAmount());
+            nppangRequest.setAlcoholAmount(request.getAlcoholAmount());
+            nppangRequest.setTotalPeople(totalPeople);
+            nppangRequest.setAlcoholDrinkers(request.getAlcoholDrinkers());
 
-        NppangRequest nppangRequest = new NppangRequest();
-        nppangRequest.setTotalAmount(request.getTotalAmount());
-        nppangRequest.setAlcoholAmount(request.getAlcoholAmount());
-        nppangRequest.setTotalPeople(totalPeople);
-        nppangRequest.setAlcoholDrinkers(request.getAlcoholDrinkers());
-
-        return calculateNppang(nppangRequest);
+            return calculateNppang(nppangRequest);
+        });
     }
 }

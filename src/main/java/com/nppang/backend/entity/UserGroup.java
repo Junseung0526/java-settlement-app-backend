@@ -1,20 +1,13 @@
 package com.nppang.backend.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Entity
-@Getter
-@Setter
+import java.util.HashMap;
+import java.util.Map;
+
+@Data
 public class UserGroup {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    private String id;
     private String name;
+    private Map<String, Boolean> members = new HashMap<>();
 }

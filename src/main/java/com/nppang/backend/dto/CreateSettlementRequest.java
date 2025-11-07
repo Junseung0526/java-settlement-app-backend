@@ -7,5 +7,5 @@ import lombok.Setter;
 @Setter
 public class CreateSettlementRequest {
     private String settlementName;
-    private Long groupId;
+    private String groupId;
 }

@@ -1,8 +1,8 @@
 package com.nppang.backend.dto;
 
-import lombok.Data;
+import lombok.Getter;
 
-@Data
+@Getter
 public class AddMemberRequest {
-    private Long userId;
+    private String userId;
 }

@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class AddReceiptResponse {
-    private Long settlementId;
-    private Long receiptId;
+    private String settlementId;
+    private String receiptId;
     private ReceiptDto receipt;
 }
