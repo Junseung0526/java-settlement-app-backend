@@ -31,6 +31,12 @@ public class FirebaseConfig {
         try {
             if (serviceAccountSource.startsWith("file:")) {
                 String path = serviceAccountSource.substring("file:".length());
+
+                if (path.equals("local-placeholder")) {
+                    System.err.println("FATAL ERROR: FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable is MISSING.");
+                    throw new RuntimeException("Firebase initialization failed: Service account key is missing in Railway environment.");
+                }
+
                 serviceAccount = new FileInputStream(path);
                 System.out.println("Firebase: Initialized using local file path: " + path);
             } else {
@@ -50,13 +56,13 @@ public class FirebaseConfig {
                 return FirebaseApp.getInstance();
             }
         } catch (IOException e) {
-            System.err.println("FATAL ERROR: Failed to initialize Firebase Admin SDK due to I/O error.");
+            System.err.println("FATAL ERROR: Failed to initialize Firebase Admin SDK due to I/O error or invalid JSON structure.");
             e.printStackTrace();
             throw new RuntimeException("Firebase initialization failed.", e);
         } catch (IllegalArgumentException e) {
-             System.err.println("FATAL ERROR: Invalid Base64 or service account configuration.");
+             System.err.println("FATAL ERROR: Invalid Base64 string in FIREBASE_SERVICE_ACCOUNT_BASE64.");
              e.printStackTrace();
-             throw new RuntimeException("Firebase initialization failed due to invalid configuration.", e);
+             throw new RuntimeException("Firebase initialization failed due to invalid Base64.", e);
         }
     }
 
