@@ -2,10 +2,22 @@ package com.nppang.backend.service;
 
 import com.nppang.backend.dto.NppangRequest;
 import com.nppang.backend.dto.NppangResponse;
+import com.nppang.backend.dto.NppangGroupRequest;
+import com.nppang.backend.entity.GroupMember;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class NppangService {
+
+    private final GroupService groupService;
+
+    @Autowired
+    public NppangService(GroupService groupService) {
+        this.groupService = groupService;
+    }
 
     public NppangResponse calculateNppang(NppangRequest request) {
         Long totalAmount = request.getTotalAmount();
@@ -38,5 +50,18 @@ public class NppangService {
         long amountForAlcoholDrinker = commonAmountPerPerson + alcoholAmountPerDrinker;
 
         return new NppangResponse(amountPerPerson, amountForAlcoholDrinker);
+    }
+
+    public NppangResponse calculateNppangForGroup(Long groupId, NppangGroupRequest request) {
+        List<GroupMember> groupMembers = groupService.getGroupMembers(groupId);
+        int totalPeople = groupMembers.size();
+
+        NppangRequest nppangRequest = new NppangRequest();
+        nppangRequest.setTotalAmount(request.getTotalAmount());
+        nppangRequest.setAlcoholAmount(request.getAlcoholAmount());
+        nppangRequest.setTotalPeople(totalPeople);
+        nppangRequest.setAlcoholDrinkers(request.getAlcoholDrinkers());
+
+        return calculateNppang(nppangRequest);
     }
 }
