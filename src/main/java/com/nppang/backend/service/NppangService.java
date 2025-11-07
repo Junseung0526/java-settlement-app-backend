@@ -28,6 +28,7 @@ public class NppangService {
         this.settlementService = settlementService;
     }
 
+    // 정산의 최종 결과를 계산
     public CompletableFuture<CalculationResultDto> calculateSettlement(Settlement settlement) {
         if (settlement.getGroupId() == null) {
             throw new IllegalStateException("Settlement is not associated with a group.");
@@ -37,7 +38,6 @@ public class NppangService {
         CompletableFuture<List<Receipt>> receiptsFuture = settlementService.getReceiptsForSettlement(settlement.getId());
 
         return groupFuture.thenCombine(receiptsFuture, (group, receipts) -> {
-            // 1. Initialize balances for all group members
             Map<String, Double> balances = new HashMap<>();
             if (group.getMembers() != null) {
                 for (String memberId : group.getMembers().keySet()) {
@@ -45,18 +45,14 @@ public class NppangService {
                 }
             }
 
-            // 2. Process each receipt to calculate balances
             for (Receipt receipt : receipts) {
                 String payerId = receipt.getPayerId();
                 if (payerId == null || !balances.containsKey(payerId)) {
-                    // Skip receipts where payer is not in the group or not specified
                     continue;
                 }
 
-                // Credit the payer
                 balances.put(payerId, balances.get(payerId) + receipt.getTotalAmount());
 
-                // Debit the participants for each item
                 if (receipt.getItems() != null) {
                     for (ReceiptItem item : receipt.getItems()) {
                         double price = item.getPrice();
@@ -75,17 +71,16 @@ public class NppangService {
                 }
             }
 
-            // 3. Simplify transactions
             List<TransactionDto> transactions = simplifyTransactions(balances);
 
             return new CalculationResultDto(balances, transactions);
         });
     }
 
+    // 정산 결과를 바탕으로 최종 송금 목록을 계산
     private List<TransactionDto> simplifyTransactions(Map<String, Double> balances) {
-        // Separate debtors (negative balance) and creditors (positive balance)
         Map<String, Double> debtors = balances.entrySet().stream()
-                .filter(entry -> entry.getValue() < -0.01) // Use a small epsilon for double comparison
+                .filter(entry -> entry.getValue() < -0.01)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         Map<String, Double> creditors = balances.entrySet().stream()
@@ -94,7 +89,6 @@ public class NppangService {
 
         List<TransactionDto> transactions = new ArrayList<>();
 
-        // Use iterators to safely modify maps while iterating
         var debtorIter = debtors.entrySet().iterator();
         var creditorIter = creditors.entrySet().iterator();
 
@@ -111,16 +105,13 @@ public class NppangService {
 
             transactions.add(new TransactionDto(debtorId, creditorId, transferAmount));
 
-            // Update balances
             debtorEntry.setValue(debtorAmount + transferAmount);
             creditorEntry.setValue(creditorAmount - transferAmount);
 
-            // Move to next debtor if current one is settled
             if (Math.abs(debtorEntry.getValue()) < 0.01) {
                 debtorEntry = debtorIter.hasNext() ? debtorIter.next() : null;
             }
 
-            // Move to next creditor if current one is settled
             if (creditorEntry.getValue() < 0.01) {
                 creditorEntry = creditorIter.hasNext() ? creditorIter.next() : null;
             }

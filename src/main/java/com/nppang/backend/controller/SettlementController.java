@@ -23,6 +23,7 @@ public class SettlementController {
     private final SettlementService settlementService;
     private final NppangService nppangService;
 
+    // 새로운 정산을 생성하는 API
     @PostMapping
     public ResponseEntity<SettlementResponse> createSettlement(@RequestBody CreateSettlementRequest request) {
         try {
@@ -45,6 +46,7 @@ public class SettlementController {
         }
     }
 
+    // 특정 정산에 영수증을 추가하는 API
     @PostMapping("/{settlementId}/receipts")
     public CompletableFuture<ResponseEntity<AddReceiptResponse>> addReceipt(
             @PathVariable String settlementId,
@@ -60,6 +62,7 @@ public class SettlementController {
                 });
     }
 
+    // 특정 정산의 상세 정보를 조회하는 API
     @GetMapping("/{settlementId}")
     public CompletableFuture<ResponseEntity<SettlementResponse>> getSettlement(@PathVariable String settlementId) {
         CompletableFuture<Settlement> settlementFuture = settlementService.getSettlement(settlementId);
@@ -85,6 +88,7 @@ public class SettlementController {
         });
     }
 
+    // 특정 정산의 최종 결과를 계산하는 API입니다.
     @PostMapping("/{settlementId}/calculate")
     public CompletableFuture<ResponseEntity<CalculationResultDto>> calculateSettlement(
             @PathVariable String settlementId) {

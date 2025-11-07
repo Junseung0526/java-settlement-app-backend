@@ -23,6 +23,7 @@ public class GroupService {
     private final FirebaseDatabase firebaseDatabase;
     private final UserService userService;
 
+    // 새로운 그룹을 생성하고 ID를 부여
     public CompletableFuture<UserGroup> createGroup(String name) {
         DatabaseReference counterRef = firebaseDatabase.getReference("counters/groups");
         CompletableFuture<UserGroup> future = new CompletableFuture<>();
@@ -60,6 +61,7 @@ public class GroupService {
         return future;
     }
 
+    // 특정 그룹에 사용자를 멤버로 추가
     public CompletableFuture<Void> addMember(String groupId, String userName) {
         return userService.findOrCreateUser(userName).thenAccept(appUser -> {
             DatabaseReference membersRef = firebaseDatabase.getReference("groups").child(groupId).child("members");
@@ -67,6 +69,7 @@ public class GroupService {
         });
     }
 
+    // 특정 그룹의 정보를 조회
     public CompletableFuture<UserGroup> getGroup(String groupId) {
         DatabaseReference groupRef = firebaseDatabase.getReference("groups").child(groupId);
         CompletableFuture<UserGroup> future = new CompletableFuture<>();
@@ -85,6 +88,7 @@ public class GroupService {
         return future;
     }
 
+    // 모든 그룹의 목록을 조회
     public CompletableFuture<List<UserGroup>> getAllGroups() {
         DatabaseReference groupsRef = firebaseDatabase.getReference("groups");
         CompletableFuture<List<UserGroup>> future = new CompletableFuture<>();
@@ -106,6 +110,7 @@ public class GroupService {
         return future;
     }
 
+    // 특정 그룹 ID에 속한 모든 영수증 목록을 조회
     public CompletableFuture<List<Receipt>> getReceiptsByGroupId(String groupId) {
         DatabaseReference receiptsRef = firebaseDatabase.getReference("receipts");
         CompletableFuture<List<Receipt>> future = new CompletableFuture<>();
