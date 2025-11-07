@@ -23,26 +23,13 @@ public class OcrService {
     private String tessDataPath;
     private static final String LANGUAGE = "kor";
 
-    /**
-     * OCR을 수행하고 추출된 텍스트에서 영수증 정보를 파싱합니다.
-     * @param file 영수증 이미지 파일
-     * @return 파싱된 영수증 정보 DTO
-     */
-
+    // 영수증 이미지 파일에서 텍스트를 분석하여 영수증 DTO를 생성
     public ReceiptDto doOcrAndParse(MultipartFile file) throws IOException, TesseractException {
-        // 1. OCR 실행
         String rawText = doOcr(file);
-
-        // 2. 파싱 로직 호출
         return parseReceiptText(rawText);
     }
 
-    /*
-     * 업로드된 이미지 파일에서 텍스트를 추출합니다.
-     * @param file 영수증 이미지 파일
-     * @return 추출된 텍스트
-     */
-
+    // Tesseract OCR을 사용하여 이미지 파일에서 텍스트를 추출
     private String doOcr(MultipartFile file) throws IOException, TesseractException {
         File tempFile = convertMultipartFileToFile(file);
 
@@ -51,8 +38,7 @@ public class OcrService {
         tesseract.setLanguage(LANGUAGE);
 
         try {
-            String result = tesseract.doOCR(tempFile);
-            return result;
+            return tesseract.doOCR(tempFile);
         } finally {
             if (tempFile.exists()) {
                 tempFile.delete();
@@ -60,14 +46,15 @@ public class OcrService {
         }
     }
 
+    // MultipartFile을 임시 File 객체로 변환
     private File convertMultipartFileToFile(MultipartFile file) throws IOException {
         File convFile = File.createTempFile("ocr-temp-", file.getOriginalFilename());
         file.transferTo(convFile);
         return convFile;
     }
 
+    // 추출된 텍스트를 파싱하여 영수증의 주요 정보를 추출
     private ReceiptDto parseReceiptText(String rawText) {
-
         Long totalAmount = null;
         String transactionDate = null;
         String storeName = "미확인";
@@ -75,7 +62,7 @@ public class OcrService {
         String[] lines = rawText.split("\n");
 
         Pattern totalPattern = Pattern.compile("(합계|결제금액|금액|승인금액|총액)\\D*(\\d[\\d, ]+)", Pattern.CASE_INSENSITIVE);
-        Matcher totalMatcher = totalPattern.matcher(rawText.replace(" ", "").replace("원", "")); // 공백 및 '원' 제거 후 매칭
+        Matcher totalMatcher = totalPattern.matcher(rawText.replace(" ", "").replace("원", ""));
 
         if (totalMatcher.find()) {
             try {
@@ -89,14 +76,12 @@ public class OcrService {
         Matcher dateMatcher = datePattern.matcher(rawText);
 
         if (dateMatcher.find()) {
-            // YYYY-MM-DD 형식으로 정리
             transactionDate = dateMatcher.group(1).replaceAll("[^0-9]", "-").substring(0, 10);
         }
 
-        //상호명 추출 (가장 위의 첫 줄을 상호명으로 가정)
         try {
             if (lines.length > 0 && !lines[0].trim().isEmpty()) {
-                storeName = lines[0].trim().replace(":", "").substring(0, Math.min(lines[0].trim().length(), 25)); // 상위 25자 제한
+                storeName = lines[0].trim().replace(":", "").substring(0, Math.min(lines[0].trim().length(), 25));
             }
         }
         catch (Exception e) {
@@ -105,20 +90,19 @@ public class OcrService {
         List<ReceiptItem> items = new ArrayList<>();
         if (totalAmount != null) {
             ReceiptItem totalItem = ReceiptItem.builder()
-                    .name("전체") // "Total"
+                    .name("전체")
                     .price(totalAmount)
-                    .participants(new ArrayList<>()) // Participants are unknown at this stage
+                    .participants(new ArrayList<>())
                     .build();
             items.add(totalItem);
         }
 
-        // DTO 빌드 및 반환
         return ReceiptDto.builder()
                 .totalAmount(totalAmount)
                 .transactionDate(transactionDate)
                 .storeName(storeName)
                 .items(items)
-                .payerId(null) // Payer is unknown at this stage
+                .payerId(null)
                 .build();
     }
 }

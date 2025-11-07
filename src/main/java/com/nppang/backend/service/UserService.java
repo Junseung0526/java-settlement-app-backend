@@ -16,11 +16,7 @@ public class UserService {
     private static final String LAST_USER_ID_KEY = "lastUserId";
     private static final String USERS_PATH = "users";
 
-    /**
-     * 마지막 사용자 ID를 읽고 1 증가시킨 후 새 ID를 반환합니다.
-     * 트랜잭션을 사용하여 동시성 문제를 안전하게 처리합니다.
-     */
-
+    // 원자적 연산을 통해 마지막 사용자 ID를 1 증가시키고 가져옵니다.
     private CompletableFuture<Long> getLastUserIdAndIncrement() {
         CompletableFuture<Long> future = new CompletableFuture<>();
         DatabaseReference lastUserIdRef = firebaseDatabase.getReference(METADATA_PATH).child(LAST_USER_ID_KEY);
@@ -52,6 +48,7 @@ public class UserService {
         return future;
     }
 
+    // 사용자 이름으로 사용자를 찾거나, 없으면 새로 생성합니다.
     public CompletableFuture<AppUser> findOrCreateUser(String username) {
         CompletableFuture<AppUser> future = new CompletableFuture<>();
         DatabaseReference usersRef = firebaseDatabase.getReference(USERS_PATH);
@@ -66,7 +63,7 @@ public class UserService {
                     }
                 } else {
                     getLastUserIdAndIncrement().thenAccept(newId -> {
-                        String userId = String.valueOf(newId); // ID를 문자열로 변환하여 사용
+                        String userId = String.valueOf(newId);
                         AppUser newUser = new AppUser();
                         newUser.setId(userId);
                         newUser.setUsername(username);
@@ -94,6 +91,7 @@ public class UserService {
         return future;
     }
 
+    // 사용자 ID로 사용자를 찾습니다.
     public CompletableFuture<AppUser> findUserById(String userId) {
         CompletableFuture<AppUser> future = new CompletableFuture<>();
         DatabaseReference userRef = firebaseDatabase.getReference(USERS_PATH).child(userId);

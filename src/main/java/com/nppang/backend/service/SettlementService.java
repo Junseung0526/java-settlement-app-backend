@@ -19,6 +19,7 @@ public class SettlementService {
 
     private final FirebaseDatabase firebaseDatabase;
 
+    // 새로운 정산을 생성
     public Settlement createSettlement(String settlementName, String groupId) {
         DatabaseReference settlementsRef = firebaseDatabase.getReference("settlements");
         DatabaseReference newSettlementRef = settlementsRef.push();
@@ -33,6 +34,7 @@ public class SettlementService {
         return settlement;
     }
 
+    // 정산에 새로운 영수증을 추가
     public CompletableFuture<Receipt> addReceiptToSettlement(String settlementId, AddReceiptRequest request) {
         CompletableFuture<Settlement> settlementFuture = getSettlement(settlementId);
 
@@ -71,6 +73,7 @@ public class SettlementService {
         });
     }
 
+    // 특정 정산 정보를 조회
     public CompletableFuture<Settlement> getSettlement(String settlementId) {
         DatabaseReference settlementRef = firebaseDatabase.getReference("settlements").child(settlementId);
         CompletableFuture<Settlement> future = new CompletableFuture<>();
@@ -89,6 +92,7 @@ public class SettlementService {
         return future;
     }
 
+    // 특정 정산에 속한 모든 영수증 목록을 조회
     public CompletableFuture<java.util.List<Receipt>> getReceiptsForSettlement(String settlementId) {
         DatabaseReference receiptsRef = firebaseDatabase.getReference("receipts");
         CompletableFuture<java.util.List<Receipt>> future = new CompletableFuture<>();
