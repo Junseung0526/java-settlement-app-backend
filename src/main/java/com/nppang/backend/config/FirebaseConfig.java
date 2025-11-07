@@ -17,10 +17,10 @@ import java.util.Base64;
 @Configuration
 public class FirebaseConfig {
 
-    @Value("${firebase.service-account-source}")
+    @Value("${FIREBASE_SERVICE_ACCOUNT_BASE64}")
     private String serviceAccountSource;
 
-    @Value("${firebase.database-url}")
+    @Value("${FIREBASE_DATABASE_URL}")
     private String databaseUrl;
 
     @Bean
