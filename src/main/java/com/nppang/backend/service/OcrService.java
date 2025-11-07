@@ -1,6 +1,7 @@
 package com.nppang.backend.service;
 
 import com.nppang.backend.dto.ReceiptDto;
+import com.nppang.backend.entity.ReceiptItem;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
@@ -10,6 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,29 +71,8 @@ public class OcrService {
         Long totalAmount = null;
         String transactionDate = null;
         String storeName = "미확인";
-        long alcoholAmount = 0L;
-
-        // 주류 키워드 목록
-        String[] alcoholKeywords = {"소주", "맥주", "막걸리", "와인"};
 
         String[] lines = rawText.split("\n");
-        for (String line : lines) {
-            for (String keyword : alcoholKeywords) {
-                if (line.contains(keyword)) {
-                    // 숫자(금액) 추출 (단순히 라인에 포함된 모든 숫자를 합산)
-                    Pattern pricePattern = Pattern.compile("\\d[\\d,]+");
-                    Matcher priceMatcher = pricePattern.matcher(line);
-                    if (priceMatcher.find()) {
-                        try {
-                            String priceStr = priceMatcher.group().replaceAll("[^0-9]", "");
-                            alcoholAmount += Long.parseLong(priceStr);
-                        } catch (NumberFormatException e) {
-                        }
-                    }
-                    break;
-                }
-            }
-        }
 
         Pattern totalPattern = Pattern.compile("(합계|결제금액|금액|승인금액|총액)\\D*(\\d[\\d, ]+)", Pattern.CASE_INSENSITIVE);
         Matcher totalMatcher = totalPattern.matcher(rawText.replace(" ", "").replace("원", "")); // 공백 및 '원' 제거 후 매칭
@@ -120,7 +102,23 @@ public class OcrService {
         catch (Exception e) {
         }
 
+        List<ReceiptItem> items = new ArrayList<>();
+        if (totalAmount != null) {
+            ReceiptItem totalItem = ReceiptItem.builder()
+                    .name("전체") // "Total"
+                    .price(totalAmount)
+                    .participants(new ArrayList<>()) // Participants are unknown at this stage
+                    .build();
+            items.add(totalItem);
+        }
+
         // DTO 빌드 및 반환
-        return ReceiptDto.builder().totalAmount(totalAmount).alcoholAmount(alcoholAmount).transactionDate(transactionDate).storeName(storeName).rawText(rawText).build();
+        return ReceiptDto.builder()
+                .totalAmount(totalAmount)
+                .transactionDate(transactionDate)
+                .storeName(storeName)
+                .items(items)
+                .payerId(null) // Payer is unknown at this stage
+                .build();
     }
 }

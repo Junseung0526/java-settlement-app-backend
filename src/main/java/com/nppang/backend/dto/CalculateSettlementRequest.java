@@ -6,5 +6,5 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CalculateSettlementRequest {
-    private int alcoholDrinkers;
+    // This class is now empty as the calculation is based on stored data.
 }

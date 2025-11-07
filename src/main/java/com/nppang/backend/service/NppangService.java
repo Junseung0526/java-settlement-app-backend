@@ -1,16 +1,20 @@
 package com.nppang.backend.service;
 
-import com.nppang.backend.dto.NppangRequest;
-import com.nppang.backend.dto.NppangResponse;
-import com.nppang.backend.dto.NppangGroupRequest;
-
-import com.nppang.backend.entity.Settlement;
+import com.nppang.backend.dto.CalculationResultDto;
+import com.nppang.backend.dto.TransactionDto;
 import com.nppang.backend.entity.Receipt;
+import com.nppang.backend.entity.ReceiptItem;
+import com.nppang.backend.entity.Settlement;
+import com.nppang.backend.entity.UserGroup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Service
 public class NppangService {
@@ -24,80 +28,104 @@ public class NppangService {
         this.settlementService = settlementService;
     }
 
-    public NppangResponse calculateNppang(NppangRequest request) {
-        Long totalAmount = request.getTotalAmount();
-        Long alcoholAmount = request.getAlcoholAmount();
-        int totalPeople = request.getTotalPeople();
-        int alcoholDrinkers = request.getAlcoholDrinkers();
-
-        if (totalPeople <= 0) {
-            throw new IllegalArgumentException("Total people must be greater than 0.");
-        }
-
-        if (alcoholDrinkers > totalPeople) {
-            throw new IllegalArgumentException("Alcohol drinkers cannot be more than total people.");
-        }
-
-        // 술을 제외한 공통 금액
-        long commonAmount = totalAmount - alcoholAmount;
-
-        // 1인당 공통 부담 금액
-        long commonAmountPerPerson = commonAmount / totalPeople;
-
-        // 술 마시는 사람들의 추가 부담 금액
-        long alcoholAmountPerDrinker = 0;
-        if (alcoholDrinkers > 0) {
-            alcoholAmountPerDrinker = alcoholAmount / alcoholDrinkers;
-        }
-
-        // 최종 금액 계산
-        long amountPerPerson = commonAmountPerPerson;
-        long amountForAlcoholDrinker = commonAmountPerPerson + alcoholAmountPerDrinker;
-
-        return new NppangResponse(amountPerPerson, amountForAlcoholDrinker);
-    }
-
-    public CompletableFuture<NppangResponse> calculateNppangForSettlement(Settlement settlement, int alcoholDrinkers) {
+    public CompletableFuture<CalculationResultDto> calculateSettlement(Settlement settlement) {
         if (settlement.getGroupId() == null) {
             throw new IllegalStateException("Settlement is not associated with a group.");
         }
 
+        CompletableFuture<UserGroup> groupFuture = groupService.getGroup(settlement.getGroupId());
         CompletableFuture<List<Receipt>> receiptsFuture = settlementService.getReceiptsForSettlement(settlement.getId());
-        CompletableFuture<com.nppang.backend.entity.UserGroup> groupFuture = groupService.getGroup(settlement.getGroupId());
 
-        return receiptsFuture.thenCombine(groupFuture, (receipts, group) -> {
-            long totalAmount = receipts.stream()
-                                .mapToLong(r -> r.getTotalAmount() != null ? r.getTotalAmount() : 0)
-                                .sum();
+        return groupFuture.thenCombine(receiptsFuture, (group, receipts) -> {
+            // 1. Initialize balances for all group members
+            Map<String, Double> balances = new HashMap<>();
+            if (group.getMembers() != null) {
+                for (String memberId : group.getMembers().keySet()) {
+                    balances.put(memberId, 0.0);
+                }
+            }
 
-            long alcoholAmount = receipts.stream()
-                                 .mapToLong(r -> r.getAlcoholAmount() != null ? r.getAlcoholAmount() : 0)
-                                 .sum();
+            // 2. Process each receipt to calculate balances
+            for (Receipt receipt : receipts) {
+                String payerId = receipt.getPayerId();
+                if (payerId == null || !balances.containsKey(payerId)) {
+                    // Skip receipts where payer is not in the group or not specified
+                    continue;
+                }
 
-            int totalPeople = (group.getMembers() != null) ? group.getMembers().size() : 0;
+                // Credit the payer
+                balances.put(payerId, balances.get(payerId) + receipt.getTotalAmount());
 
-            NppangRequest request = new NppangRequest();
-            request.setTotalAmount(totalAmount);
-            request.setAlcoholAmount(alcoholAmount);
-            request.setTotalPeople(totalPeople);
-            request.setAlcoholDrinkers(alcoholDrinkers);
+                // Debit the participants for each item
+                if (receipt.getItems() != null) {
+                    for (ReceiptItem item : receipt.getItems()) {
+                        double price = item.getPrice();
+                        List<String> participants = item.getParticipants();
+                        if (participants == null || participants.isEmpty()) {
+                            continue;
+                        }
 
-            return calculateNppang(request);
+                        double costPerParticipant = price / participants.size();
+                        for (String participantId : participants) {
+                            if (balances.containsKey(participantId)) {
+                                balances.put(participantId, balances.get(participantId) - costPerParticipant);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Simplify transactions
+            List<TransactionDto> transactions = simplifyTransactions(balances);
+
+            return new CalculationResultDto(balances, transactions);
         });
     }
 
-    public CompletableFuture<NppangResponse> calculateNppangForGroup(String groupId, NppangGroupRequest request) {
-        return groupService.getGroup(groupId).thenApply(group -> {
-            // Null 체크 추가: group.getMembers()가 null일 경우 빈 Map으로 처리
-            int totalPeople = (group.getMembers() != null) ? group.getMembers().size() : 0;
+    private List<TransactionDto> simplifyTransactions(Map<String, Double> balances) {
+        // Separate debtors (negative balance) and creditors (positive balance)
+        Map<String, Double> debtors = balances.entrySet().stream()
+                .filter(entry -> entry.getValue() < -0.01) // Use a small epsilon for double comparison
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            NppangRequest nppangRequest = new NppangRequest();
-            nppangRequest.setTotalAmount(request.getTotalAmount());
-            nppangRequest.setAlcoholAmount(request.getAlcoholAmount());
-            nppangRequest.setTotalPeople(totalPeople);
-            nppangRequest.setAlcoholDrinkers(request.getAlcoholDrinkers());
+        Map<String, Double> creditors = balances.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0.01)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            return calculateNppang(nppangRequest);
-        });
+        List<TransactionDto> transactions = new ArrayList<>();
+
+        // Use iterators to safely modify maps while iterating
+        var debtorIter = debtors.entrySet().iterator();
+        var creditorIter = creditors.entrySet().iterator();
+
+        Map.Entry<String, Double> debtorEntry = debtorIter.hasNext() ? debtorIter.next() : null;
+        Map.Entry<String, Double> creditorEntry = creditorIter.hasNext() ? creditorIter.next() : null;
+
+        while (debtorEntry != null && creditorEntry != null) {
+            String debtorId = debtorEntry.getKey();
+            double debtorAmount = debtorEntry.getValue();
+            String creditorId = creditorEntry.getKey();
+            double creditorAmount = creditorEntry.getValue();
+
+            double transferAmount = Math.min(Math.abs(debtorAmount), creditorAmount);
+
+            transactions.add(new TransactionDto(debtorId, creditorId, transferAmount));
+
+            // Update balances
+            debtorEntry.setValue(debtorAmount + transferAmount);
+            creditorEntry.setValue(creditorAmount - transferAmount);
+
+            // Move to next debtor if current one is settled
+            if (Math.abs(debtorEntry.getValue()) < 0.01) {
+                debtorEntry = debtorIter.hasNext() ? debtorIter.next() : null;
+            }
+
+            // Move to next creditor if current one is settled
+            if (creditorEntry.getValue() < 0.01) {
+                creditorEntry = creditorIter.hasNext() ? creditorIter.next() : null;
+            }
+        }
+
+        return transactions;
     }
 }
