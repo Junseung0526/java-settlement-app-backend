@@ -18,5 +18,8 @@ logging:
 tesseract:
   datapath: /usr/share/tessdata
 
+firebase:
+  service-account-source: ${FIREBASE_SERVICE_ACCOUNT_BASE64}
+  database-url: ${FIREBASE_DATABASE_URL}
 
 
