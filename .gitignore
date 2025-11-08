@@ -37,5 +37,5 @@ out/
 .vscode/
 serviceAccountKey.json
 application-local.yml
-index.html
-HomeController.java
+#index.html
+#HomeController.java

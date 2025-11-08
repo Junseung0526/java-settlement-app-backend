@@ -1,5 +1,6 @@
 package com.nppang.backend.controller;
 
+import com.nppang.backend.dto.CreateUserRequest;
 import com.nppang.backend.dto.UpdateUserRequest;
 import com.nppang.backend.entity.AppUser;
 import com.nppang.backend.service.UserService;
@@ -16,6 +17,12 @@ import java.util.concurrent.CompletableFuture;
 public class UserController {
 
     private final UserService userService;
+
+    @PostMapping
+    public CompletableFuture<ResponseEntity<AppUser>> createUser(@RequestBody CreateUserRequest request) {
+        return userService.findOrCreateUser(request.getUsername())
+                .thenApply(ResponseEntity::ok);
+    }
 
     @GetMapping
     public CompletableFuture<ResponseEntity<List<AppUser>>> getAllUsers() {

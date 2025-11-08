@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nppang 정산 테스트 페이지</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .card-header {
+            font-weight: bold;
+        }
+        .form-select-sm {
+            max-width: 250px;
+        }
+        #receiptItemsTable th, #receiptItemsTable td {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <header class="text-center mb-4">
+            <h1>Nppang 정산 통합 테스트 페이지</h1>
+            <p class="lead">모든 API를 이곳에서 테스트할 수 있습니다.</p>
+        </header>
+
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-md-6">
+                <!-- Users Panel -->
+                <div class="card mb-4">
+                    <div class="card-header">1. 사용자 관리</div>
+                    <div class="card-body">
+                        <div class="input-group mb-3">
+                            <input type="text" id="newUsername" class="form-control" placeholder="새 사용자 이름">
+                            <button id="createUserBtn" class="btn btn-success">사용자 생성</button>
+                        </div>
+                        <button id="loadUsersBtn" class="btn btn-primary btn-sm mb-2">사용자 목록 새로고침</button>
+                        <ul id="userList" class="list-group mb-3"></ul>
+                        <div id="updateUserForm" class="d-none">
+                            <h5>사용자 이름 변경</h5>
+                            <div class="input-group">
+                                <input type="text" id="newUsernameInput" class="form-control" placeholder="새로운 이름">
+                                <button id="updateUserBtn" class="btn btn-outline-secondary">변경</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Groups Panel -->
+                <div class="card mb-4">
+                    <div class="card-header">2. 그룹 관리</div>
+                    <div class="card-body">
+                        <div class="input-group mb-3">
+                            <input type="text" id="groupNameInput" class="form-control" placeholder="새 그룹 이름">
+                            <button id="createGroupBtn" class="btn btn-success">그룹 생성</button>
+                        </div>
+                        <button id="loadGroupsBtn" class="btn btn-primary btn-sm mb-2">그룹 목록 새로고침</button>
+                        <select id="groupSelect" class="form-select mb-2"></select>
+                        
+                        <h5>그룹 멤버</h5>
+                        <div class="input-group mb-3">
+                            <select id="userSelectForGroup" class="form-select"></select>
+                            <button id="addMemberBtn" class="btn btn-outline-secondary">멤버 추가</button>
+                        </div>
+                        <ul id="memberList" class="list-group"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-md-6">
+                <!-- Receipts Panel -->
+                <div class="card mb-4">
+                    <div class="card-header">3. 영수증 관리</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="receiptGroupSelect" class="form-label">영수증을 추가할 그룹:</label>
+                            <select id="receiptGroupSelect" class="form-select"></select>
+                        </div>
+                        <button id="loadReceiptsBtn" class="btn btn-primary btn-sm mb-3">선택한 그룹의 영수증 불러오기</button>
+                        <ul id="receiptList" class="list-group mb-3"></ul>
+
+                        <nav>
+                            <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                                <button class="nav-link active" id="nav-manual-tab" data-bs-toggle="tab" data-bs-target="#nav-manual" type="button" role="tab">수동 등록</button>
+                                <button class="nav-link" id="nav-ocr-tab" data-bs-toggle="tab" data-bs-target="#nav-ocr" type="button" role="tab">OCR 등록</button>
+                            </div>
+                        </nav>
+                        <div class="tab-content border border-top-0 p-3" id="nav-tabContent">
+                            <div class="tab-pane fade show active" id="nav-manual" role="tabpanel">
+                                <h5 class="mt-2">영수증 정보</h5>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-6">
+                                        <input type="text" id="storeNameInput" class="form-control" placeholder="가게 이름">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="date" id="transactionDateInput" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-6">
+                                        <input type="number" id="totalAmountInput" class="form-control" placeholder="총액">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <select id="payerSelect" class="form-select" placeholder="결제자"></select>
+                                    </div>
+                                </div>
+                                <h6>항목</h6>
+                                <table id="receiptItemsTable" class="table table-sm">
+                                    <thead><tr><th>이름</th><th>가격</th><th>참여자</th><th></th></tr></thead>
+                                    <tbody></tbody>
+                                </table>
+                                <button id="addItemBtn" class="btn btn-secondary btn-sm">항목 추가</button>
+                                <hr>
+                                <button id="submitReceiptBtn" class="btn btn-success w-100">영수증 제출</button>
+                            </div>
+                            <div class="tab-pane fade" id="nav-ocr" role="tabpanel">
+                                <div class="input-group mt-2">
+                                    <input type="file" id="ocrFile" class="form-control" accept="image/*">
+                                    <button id="ocrParseBtn" class="btn btn-info">OCR 분석</button>
+                                </div>
+                                <div id="ocrSpinner" class="d-none text-center mt-2">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settlement Panel -->
+        <div class="card mb-4">
+            <div class="card-header">4. 정산 관리</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="settlementGroupSelect" class="form-label">정산할 그룹:</label>
+                        <select id="settlementGroupSelect" class="form-select mb-2"></select>
+                        <div class="input-group mb-3">
+                            <input type="text" id="settlementNameInput" class="form-control" placeholder="새 정산 이름">
+                            <button id="createSettlementBtn" class="btn btn-success">정산 생성</button>
+                        </div>
+                        <label for="settlementSelect" class="form-label">생성된 정산:</label>
+                        <select id="settlementSelect" class="form-select"></select>
+                    </div>
+                    <div class="col-md-8">
+                        <h5>정산에 포함할 영수증 선택 (정산 미완료)</h5>
+                        <div id="unsettledReceiptsList" class="list-group mb-3" style="max-height: 200px; overflow-y: auto;"></div>
+                        <button id="calculateSettlementBtn" class="btn btn-danger">선택한 영수증으로 정산 계산</button>
+                    </div>
+                </div>
+                <hr>
+                <h5>정산 결과</h5>
+                <div id="settlementResult" class="p-3 bg-light rounded">결과가 여기에 표시됩니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_BASE_URL = '/api/v1';
+
+            // State
+            let users = [];
+            let groups = [];
+            let selectedUserId = null;
+            let selectedGroupForMember = null;
+            let selectedGroupForReceipt = null;
+            let selectedGroupForSettlement = null;
+            let selectedSettlementId = null;
+
+            // Element Selectors
+            const userList = document.getElementById('userList');
+            const loadUsersBtn = document.getElementById('loadUsersBtn');
+            const updateUserForm = document.getElementById('updateUserForm');
+            const newUsernameInput = document.getElementById('newUsernameInput');
+            const updateUserBtn = document.getElementById('updateUserBtn');
+            const newUsername = document.getElementById('newUsername');
+            const createUserBtn = document.getElementById('createUserBtn');
+
+            const groupNameInput = document.getElementById('groupNameInput');
+            const createGroupBtn = document.getElementById('createGroupBtn');
+            const loadGroupsBtn = document.getElementById('loadGroupsBtn');
+            const groupSelect = document.getElementById('groupSelect');
+            const userSelectForGroup = document.getElementById('userSelectForGroup');
+            const addMemberBtn = document.getElementById('addMemberBtn');
+            const memberList = document.getElementById('memberList');
+
+            const receiptGroupSelect = document.getElementById('receiptGroupSelect');
+            const loadReceiptsBtn = document.getElementById('loadReceiptsBtn');
+            const receiptList = document.getElementById('receiptList');
+            const storeNameInput = document.getElementById('storeNameInput');
+            const transactionDateInput = document.getElementById('transactionDateInput');
+            const totalAmountInput = document.getElementById('totalAmountInput');
+            const payerSelect = document.getElementById('payerSelect');
+            const receiptItemsTableBody = document.querySelector('#receiptItemsTable tbody');
+            const addItemBtn = document.getElementById('addItemBtn');
+            const submitReceiptBtn = document.getElementById('submitReceiptBtn');
+            const ocrFile = document.getElementById('ocrFile');
+            const ocrParseBtn = document.getElementById('ocrParseBtn');
+            const ocrSpinner = document.getElementById('ocrSpinner');
+
+            const settlementGroupSelect = document.getElementById('settlementGroupSelect');
+            const settlementNameInput = document.getElementById('settlementNameInput');
+            const createSettlementBtn = document.getElementById('createSettlementBtn');
+            const settlementSelect = document.getElementById('settlementSelect');
+            const unsettledReceiptsList = document.getElementById('unsettledReceiptsList');
+            const calculateSettlementBtn = document.getElementById('calculateSettlementBtn');
+            const settlementResult = document.getElementById('settlementResult');
+
+            // --- API Functions ---
+            const api = {
+                get: (endpoint) => fetch(`${API_BASE_URL}${endpoint}`).then(res => res.json()),
+                post: (endpoint, body) => fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                }).then(res => res.json()),
+                put: (endpoint, body) => fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                }),
+                postForm: (endpoint, formData) => fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'POST',
+                    body: formData
+                }).then(res => res.json()),
+            };
+
+            // --- User Panel Logic ---
+            async function loadUsers() {
+                users = await api.get('/users');
+                userList.innerHTML = '';
+                userSelectForGroup.innerHTML = '<option value="">멤버로 추가할 사용자 선택</option>';
+                users.forEach(user => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item list-group-item-action';
+                    li.textContent = `${user.username} (ID: ${user.id})`;
+                    li.dataset.userId = user.id;
+                    li.style.cursor = 'pointer';
+                    li.addEventListener('click', () => {
+                        selectedUserId = user.id;
+                        updateUserForm.classList.remove('d-none');
+                        newUsernameInput.value = user.username;
+                        document.querySelectorAll('#userList .list-group-item').forEach(item => item.classList.remove('active'));
+                        li.classList.add('active');
+                    });
+                    userList.appendChild(li);
+
+                    const option = new Option(`${user.username} (ID: ${user.id})`, user.id);
+                    userSelectForGroup.add(option);
+                });
+            }
+
+            createUserBtn.addEventListener('click', async () => {
+                const username = newUsername.value;
+                if (!username) {
+                    alert('사용자 이름을 입력하세요.');
+                    return;
+                }
+                await api.post('/users', { username });
+                alert(`사용자 '${username}'이(가) 생성되었습니다.`);
+                newUsername.value = '';
+                loadUsers();
+            });
+
+            updateUserBtn.addEventListener('click', async () => {
+                if (!selectedUserId) return;
+                const newUsernameValue = newUsernameInput.value;
+                if (!newUsernameValue) {
+                    alert('새로운 이름을 입력하세요.');
+                    return;
+                }
+                await api.put(`/users/${selectedUserId}`, { username: newUsernameValue });
+                alert('사용자 이름이 변경되었습니다.');
+                selectedUserId = null;
+                updateUserForm.classList.add('d-none');
+                loadUsers();
+            });
+
+            // --- Group Panel Logic ---
+            async function loadGroups() {
+                groups = await api.get('/groups');
+                const selects = [groupSelect, receiptGroupSelect, settlementGroupSelect];
+                selects.forEach(s => s.innerHTML = '<option value="">그룹 선택</option>');
+                groups.forEach(group => {
+                    selects.forEach(s => {
+                        const option = new Option(`${group.name} (ID: ${group.id})`, group.id);
+                        s.add(option.cloneNode(true));
+                    });
+                });
+            }
+
+            createGroupBtn.addEventListener('click', async () => {
+                const name = groupNameInput.value;
+                if (!name) {
+                    alert('그룹 이름을 입력하세요.');
+                    return;
+                }
+                await api.post('/groups', { name });
+                alert('그룹이 생성되었습니다.');
+                groupNameInput.value = '';
+                loadGroups();
+            });
+
+            groupSelect.addEventListener('change', async (e) => {
+                selectedGroupForMember = e.target.value;
+                if (!selectedGroupForMember) {
+                    memberList.innerHTML = '';
+                    return;
+                }
+                const group = await api.get(`/groups/${selectedGroupForMember}`);
+                memberList.innerHTML = '';
+                if (group.members) {
+                    const memberIds = Object.keys(group.members);
+                    const memberPromises = memberIds.map(id => api.get(`/users/${id}`));
+                    const groupMembers = await Promise.all(memberPromises);
+                    
+                    groupMembers.forEach(member => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item';
+                        li.textContent = `${member.username} (ID: ${member.id})`;
+                        memberList.appendChild(li);
+                    });
+                }
+            });
+
+            addMemberBtn.addEventListener('click', async () => {
+                const userId = userSelectForGroup.value;
+                if (!selectedGroupForMember || !userId) {
+                    alert('그룹과 추가할 멤버를 선택하세요.');
+                    return;
+                }
+                const user = users.find(u => u.id === userId);
+                await api.post(`/groups/${selectedGroupForMember}/members`, { userName: user.username });
+                alert('멤버가 추가되었습니다.');
+                groupSelect.dispatchEvent(new Event('change'));
+            });
+
+            // --- Receipt Panel Logic ---
+            async function populatePayerAndParticipants(groupId) {
+                payerSelect.innerHTML = '<option value="">결제자 선택</option>';
+                if (!groupId) {
+                    updateReceiptItemsParticipants([]);
+                    return;
+                }
+
+                const group = await api.get(`/groups/${groupId}`);
+                let groupMembers = [];
+                if (group.members) {
+                    const memberIds = Object.keys(group.members);
+                    const memberPromises = memberIds.map(id => api.get(`/users/${id}`));
+                    groupMembers = await Promise.all(memberPromises);
+                    
+                    groupMembers.forEach(member => {
+                        const option = new Option(`${member.username} (ID: ${member.id})`, member.id);
+                        payerSelect.add(option);
+                    });
+                }
+                updateReceiptItemsParticipants(groupMembers);
+            }
+
+            receiptGroupSelect.addEventListener('change', (e) => {
+                selectedGroupForReceipt = e.target.value;
+                receiptList.innerHTML = '';
+                populatePayerAndParticipants(selectedGroupForReceipt);
+            });
+
+            loadReceiptsBtn.addEventListener('click', async () => {
+                if (!selectedGroupForReceipt) {
+                    alert('그룹을 먼저 선택하세요.');
+                    return;
+                }
+                const receipts = await api.get(`/groups/${selectedGroupForReceipt}/receipts`);
+                receiptList.innerHTML = '';
+                receipts.forEach(r => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.textContent = `${r.storeName} - ${r.totalAmount}원 (ID: ${r.id})`;
+                    receiptList.appendChild(li);
+                });
+            });
+
+            function addReceiptItemRow(item = { name: '', price: 0, participants: [] }) {
+                const row = receiptItemsTableBody.insertRow();
+                const members = Array.from(payerSelect.options).slice(1).map(opt => ({ id: opt.value, name: opt.text }));
+
+                let participantCheckboxes = members.map(member => `
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" value="${member.id}" ${item.participants.includes(member.id) ? 'checked' : ''}>
+                        <label class="form-check-label">${member.name.split(' ')[0]}</label>
+                    </div>
+                `).join('');
+
+                row.innerHTML = `
+                    <td><input type="text" class="form-control form-control-sm" value="${item.name}" placeholder="항목명"></td>
+                    <td><input type="number" class="form-control form-control-sm" value="${item.price}" placeholder="가격"></td>
+                    <td>${participantCheckboxes}</td>
+                    <td><button class="btn btn-danger btn-sm">X</button></td>
+                `;
+                row.querySelector('button').addEventListener('click', () => row.remove());
+            }
+
+            function updateReceiptItemsParticipants(members = []) {
+                receiptItemsTableBody.querySelectorAll('tr').forEach(row => {
+                    const currentParticipants = Array.from(row.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
+                    let participantCheckboxes = members.map(member => `
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" value="${member.id}" ${currentParticipants.includes(member.id) ? 'checked' : ''}>
+                            <label class="form-check-label">${member.name.split(' ')[0]}</label>
+                        </div>
+                    `).join('');
+                    row.cells[2].innerHTML = participantCheckboxes;
+                });
+            }
+
+            addItemBtn.addEventListener('click', () => addReceiptItemRow());
+
+            submitReceiptBtn.addEventListener('click', async () => {
+                if (!selectedGroupForReceipt) {
+                    alert('영수증을 추가할 그룹을 선택하세요.');
+                    return;
+                }
+                const items = Array.from(receiptItemsTableBody.rows).map(row => {
+                    const participants = Array.from(row.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
+                    return {
+                        name: row.cells[0].querySelector('input').value,
+                        price: parseInt(row.cells[1].querySelector('input').value) || 0,
+                        participants: participants
+                    };
+                });
+
+                const receiptData = {
+                    groupId: selectedGroupForReceipt,
+                    payerId: payerSelect.value,
+                    storeName: storeNameInput.value,
+                    transactionDate: transactionDateInput.value,
+                    totalAmount: parseInt(totalAmountInput.value) || 0,
+                    items: items
+                };
+
+                if (!receiptData.payerId) {
+                    alert('결제자를 선택하세요.');
+                    return;
+                }
+
+                await api.post('/receipts', receiptData);
+                alert('영수증이 제출되었습니다.');
+                loadReceiptsBtn.click();
+                // Clear form
+                storeNameInput.value = '';
+                transactionDateInput.value = '';
+                totalAmountInput.value = '';
+                receiptItemsTableBody.innerHTML = '';
+            });
+
+            ocrParseBtn.addEventListener('click', async () => {
+                if (!ocrFile.files[0]) {
+                    alert('OCR 분석할 파일을 선택하세요.');
+                    return;
+                }
+                if (!selectedGroupForReceipt) {
+                    alert('영수증을 추가할 그룹을 먼저 선택하세요.');
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('file', ocrFile.files[0]);
+
+                ocrSpinner.classList.remove('d-none');
+                try {
+                    const data = await api.postForm('/ocr/parse', formData);
+                    storeNameInput.value = data.storeName || '';
+                    transactionDateInput.value = data.transactionDate ? data.transactionDate.split('T')[0] : '';
+                    totalAmountInput.value = data.totalAmount || '';
+                    
+                    receiptItemsTableBody.innerHTML = '';
+                    if (data.items && data.items.length > 0) {
+                        data.items.forEach(item => addReceiptItemRow(item));
+                    } else {
+                        addReceiptItemRow({ name: '전체', price: data.totalAmount || 0, participants: [] });
+                    }
+                    
+                    alert('OCR 분석 완료! 내용을 확인하고 제출하세요.');
+                    document.getElementById('nav-manual-tab').click();
+                } catch (error) {
+                    console.error('OCR Error:', error);
+                    alert('OCR 분석에 실패했습니다.');
+                } finally {
+                    ocrSpinner.classList.add('d-none');
+                }
+            });
+
+            // --- Settlement Panel Logic ---
+            settlementGroupSelect.addEventListener('change', async (e) => {
+                selectedGroupForSettlement = e.target.value;
+                settlementSelect.innerHTML = '';
+                unsettledReceiptsList.innerHTML = '';
+                if (!selectedGroupForSettlement) return;
+
+                const receipts = await api.get(`/groups/${selectedGroupForSettlement}/receipts`);
+                const unsettledReceipts = receipts.filter(r => !r.settlementId);
+                
+                unsettledReceipts.forEach(r => {
+                    const div = document.createElement('div');
+                    div.className = 'list-group-item';
+                    div.innerHTML = `
+                        <input class="form-check-input me-1" type="checkbox" value="${r.id}" id="receipt-check-${r.id}">
+                        <label class="form-check-label" for="receipt-check-${r.id}">${r.storeName} - ${r.totalAmount}원</label>
+                    `;
+                    unsettledReceiptsList.appendChild(div);
+                });
+            });
+
+            createSettlementBtn.addEventListener('click', async () => {
+                const settlementName = settlementNameInput.value;
+                if (!selectedGroupForSettlement || !settlementName) {
+                    alert('그룹을 선택하고 정산 이름을 입력하세요.');
+                    return;
+                }
+                const result = await api.post('/settlements', {
+                    settlementName: settlementName,
+                    groupId: selectedGroupForSettlement
+                });
+                const option = new Option(`${result.settlementName} (ID: ${result.settlementId})`, result.settlementId);
+                settlementSelect.add(option);
+                settlementSelect.value = result.settlementId;
+                selectedSettlementId = result.settlementId;
+                alert('정산이 생성되었습니다. 영수증을 선택하고 계산하세요.');
+            });
+
+            settlementSelect.addEventListener('change', (e) => {
+                selectedSettlementId = e.target.value;
+            });
+
+            calculateSettlementBtn.addEventListener('click', async () => {
+                const selectedReceiptIds = Array.from(unsettledReceiptsList.querySelectorAll('input:checked')).map(cb => cb.value);
+                if (!selectedSettlementId || selectedReceiptIds.length === 0) {
+                    alert('정산을 선택하고, 포함할 영수증을 1개 이상 선택하세요.');
+                    return;
+                }
+
+                const result = await api.post(`/settlements/${selectedSettlementId}/calculate`, {
+                    receiptIds: selectedReceiptIds
+                });
+
+                let resultHtml = '<h6>사용자별 정산 금액:</h6><ul class="list-group mb-3">';
+                const memberPromises = Object.keys(result.userBalances).map(id => api.get(`/users/${id}`));
+                const members = await Promise.all(memberPromises);
+                const memberMap = new Map(members.map(m => [m.id, m.username]));
+
+                for (const [userId, amount] of Object.entries(result.userBalances)) {
+                    const username = memberMap.get(userId) || `User ${userId}`;
+                    let badgeClass, label, displayAmount;
+
+                    if (amount > 0.01) {
+                        badgeClass = 'bg-success';
+                        label = '받을 돈:';
+                        displayAmount = `+${amount.toFixed(2)}`;
+                    } else if (amount < -0.01) {
+                        badgeClass = 'bg-danger';
+                        label = '낼 돈:';
+                        displayAmount = `${amount.toFixed(2)}`;
+                    } else {
+                        badgeClass = 'bg-secondary';
+                        label = '정산 완료:';
+                        displayAmount = '0.00';
+                    }
+
+                    resultHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                        ${username}
+                        <span class="badge ${badgeClass} rounded-pill">${label} ${displayAmount}원</span>
+                    </li>`;
+                }
+                resultHtml += '</ul><h6>송금 목록:</h6><ul class="list-group">';
+                result.transactions.forEach(tx => {
+                    const fromUser = memberMap.get(tx.fromUserId) || `User ${tx.fromUserId}`;
+                    const toUser = memberMap.get(tx.toUserId) || `User ${tx.toUserId}`;
+                    resultHtml += `<li class="list-group-item">${fromUser} → ${toUser}: ${tx.amount.toFixed(2)}원</li>`;
+                });
+                resultHtml += '</ul>';
+
+                settlementResult.innerHTML = resultHtml;
+                
+                // Refresh unsettled receipts list
+                settlementGroupSelect.dispatchEvent(new Event('change'));
+            });
+
+
+            // --- Initial Load ---
+            async function initialize() {
+                await loadUsers();
+                await loadGroups();
+                transactionDateInput.valueAsDate = new Date();
+            }
+
+            loadUsersBtn.addEventListener('click', loadUsers);
+            loadGroupsBtn.addEventListener('click', loadGroups);
+
+            initialize();
+        });
+    </script>
+</body>
+</html>
