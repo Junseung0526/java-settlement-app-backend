@@ -3,7 +3,8 @@ tesseract:
 
 spring:
   profiles:
-    active: local
+    active: default
+#    active: local
 
   servlet:
     multipart:
@@ -17,3 +18,8 @@ logging:
     org.apache.coyote.http11: INFO
     com.nppang.backend: DEBUG
     root: INFO
+
+firebase:
+  database-url: ${FIREBASE_DATABASE_URL}
+  service-account-source: ${FIREBASE_SERVICE_ACCOUNT_KEY}
+
