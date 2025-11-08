@@ -3,7 +3,7 @@ tesseract:
 
 spring:
   profiles:
-    active: default
+    active: local
 
   servlet:
     multipart:

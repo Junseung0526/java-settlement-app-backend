@@ -14,7 +14,9 @@ import com.nppang.backend.entity.Receipt;
 
 import com.nppang.backend.entity.AppUser;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -113,8 +115,31 @@ public class GroupService {
         groupRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                UserGroup group = dataSnapshot.getValue(UserGroup.class);
-                future.complete(group);
+                if (!dataSnapshot.exists()) {
+                    future.complete(null);
+                    return;
+                }
+                try {
+                    UserGroup group = new UserGroup();
+                    group.setId(dataSnapshot.getKey());
+                    if (dataSnapshot.hasChild("name")) {
+                        group.setName(dataSnapshot.child("name").getValue(String.class));
+                    }
+
+                    if (dataSnapshot.hasChild("members")) {
+                        DataSnapshot membersSnapshot = dataSnapshot.child("members");
+                        Map<String, Boolean> members = new HashMap<>();
+                        for (DataSnapshot memberSnapshot : membersSnapshot.getChildren()) {
+                            if (memberSnapshot.getValue(Boolean.class) != null) {
+                                members.put(memberSnapshot.getKey(), memberSnapshot.getValue(Boolean.class));
+                            }
+                        }
+                        group.setMembers(members);
+                    }
+                    future.complete(group);
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                }
             }
 
             @Override
@@ -129,18 +154,45 @@ public class GroupService {
     public CompletableFuture<List<UserGroup>> getAllGroups() {
         DatabaseReference groupsRef = firebaseDatabase.getReference("groups");
         CompletableFuture<List<UserGroup>> future = new CompletableFuture<>();
+        System.out.println("Attempting to fetch all groups from Firebase...");
         groupsRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 List<UserGroup> groups = new ArrayList<>();
+                System.out.println("Successfully received data snapshot. Processing " + dataSnapshot.getChildrenCount() + " children.");
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    groups.add(snapshot.getValue(UserGroup.class));
+                    try {
+                        System.out.println("Processing child with key: " + snapshot.getKey());
+                        UserGroup group = new UserGroup();
+                        group.setId(snapshot.getKey());
+                        if (snapshot.hasChild("name")) {
+                            group.setName(snapshot.child("name").getValue(String.class));
+                        }
+
+                        if (snapshot.hasChild("members")) {
+                            DataSnapshot membersSnapshot = snapshot.child("members");
+                            Map<String, Boolean> members = new HashMap<>();
+                            for (DataSnapshot memberSnapshot : membersSnapshot.getChildren()) {
+                                if (memberSnapshot.getValue(Boolean.class) != null) {
+                                    members.put(memberSnapshot.getKey(), memberSnapshot.getValue(Boolean.class));
+                                }
+                            }
+                            group.setMembers(members);
+                        }
+                        groups.add(group);
+                    } catch (Exception e) {
+                        System.err.println("!!! FAILED to deserialize snapshot with key: " + snapshot.getKey() + " !!!");
+                        e.printStackTrace();
+                        // Do not add to the list, just log the error and continue
+                    }
                 }
+                System.out.println("Finished processing. Completing future with " + groups.size() + " groups.");
                 future.complete(groups);
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
+                System.err.println("Firebase data read was cancelled: " + databaseError.getMessage());
                 future.completeExceptionally(databaseError.toException());
             }
         });

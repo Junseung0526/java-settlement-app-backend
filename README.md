@@ -4,7 +4,7 @@
 
 ## ✨ 주요 기능
 
-- **그룹 관리**: 정산에 참여할 그룹을 생성하고 멤버를 추가할 수 있습니다.
+- **그룹 관리**: 정산에 참여할 그룹을 생성하고 멤버를 추가, 수정, 삭제할 수 있습니다.
 - **정산 관리**: 각 그룹별로 여러 정산을 생성하고 관리할 수 있습니다.
 - **영수증 관리**:
     - **OCR 기반 정보 추출**: 영수증 이미지를 업로드하면 Tesseract OCR을 통해 가게 이름, 거래 날짜, 총액 등의 정보를 자동으로 분석하고 제안합니다.
@@ -17,8 +17,9 @@
 
 ## 🛠️ 기술 스택
 
-- **Backend**: Java 11, Spring Boot
+- **Backend**: Java 21, Spring Boot 3, Spring Security
 - **Database**: Google Firebase Realtime Database
+- **API-Docs**: SpringDoc (OpenAPI, Swagger UI)
 - **OCR**: Tesseract (Tess4J)
 - **Build Tool**: Gradle
 - **Test Page**: Vanilla JavaScript, Bootstrap 5
@@ -79,7 +80,7 @@
 
 ### 1. 사전 요구사항
 
-- **Java 11** 설치
+- **Java 21** 설치
 - **Gradle** 설치
 - **Tesseract OCR Engine** 설치: 백엔드 서버를 실행하는 머신에 Tesseract가 설치되어 있어야 합니다. [설치 가이드](https://tesseract-ocr.github.io/tessdoc/Installation.html)
 - **Firebase 프로젝트 생성**:
@@ -109,15 +110,19 @@ tesseract:
 ./gradlew build
 
 # 실행
-java -jar build/libs/backend-0.0.1-SNAPSHOT.jar
+java -jar build/libs/app.jar
 
 # 또는 Gradle로 바로 실행
 ./gradlew bootRun
 ```
 
-## 🧪 테스트 방법
+## 🚀 API 문서 및 테스트
 
-애플리케이션이 실행되면, 브라우저를 열어 아래 주소로 접속하여 모든 기능을 테스트할 수 있는 웹 페이지를 사용할 수 있습니다.
+애플리케이션을 실행한 후, 아래 URL로 접속하여 API 문서를 확인하고 직접 테스트해볼 수 있습니다.
+
+- **Swagger UI**: `http://localhost:8080/swagger-ui/index.html`
+
+또한, 간단한 정산 흐름을 테스트할 수 있는 웹 페이지도 제공됩니다.
 
 - **테스트 페이지 URL**: `http://localhost:8080/api/v1/ocr-test`
 
@@ -181,72 +186,23 @@ java -jar build/libs/backend-0.0.1-SNAPSHOT.jar
 
 ## 📝 API 엔드포인트
 
+SpringDoc을 통해 생성된 **[Swagger UI](http://localhost:8080/swagger-ui/index.html)**에서 모든 API 명세를 확인하고 직접 테스트할 수 있습니다.
+
 ### Group
 - `POST /api/v1/groups`: 새 그룹 생성
-  <details>
-  <summary>Request Body 예시</summary>
-
-  ```json
-  {
-    "name": "팀 회식"
-  }
-  ```
-  </details>
-
 - `GET /api/v1/groups`: 모든 그룹 목록 조회
 - `GET /api/v1/groups/{groupId}`: 특정 그룹 정보 조회
+- `PUT /api/v1/groups/{groupId}`: 특정 그룹 정보 수정
+- `DELETE /api/v1/groups/{groupId}`: 특정 그룹 삭제
 - `POST /api/v1/groups/{groupId}/members`: 그룹에 멤버 추가
-  <details>
-  <summary>Request Body 예시</summary>
-
-  ```json
-  {
-    "userName": "김철수"
-  }
-  ```
-  </details>
+- `GET /api/v1/groups/{groupId}/members`: 특정 그룹의 모든 멤버 조회
+- `DELETE /api/v1/groups/{groupId}/members/{userId}`: 특정 그룹의 멤버 삭제
 
 ### Settlement
 - `POST /api/v1/settlements`: 새 정산 생성
-  <details>
-  <summary>Request Body 예시</summary>
-
-  ```json
-  {
-    "settlementName": "2025년 송년회",
-    "groupId": "1"
-  }
-  ```
-  </details>
-
 - `GET /api/v1/settlements/{settlementId}`: 특정 정산 정보 조회 (포함된 영수증 포함)
 - `POST /api/v1/settlements/{settlementId}/receipts`: 정산에 영수증 추가
-  <details>
-  <summary>Request Body 예시</summary>
-
-  ```json
-  {
-    "payerId": "김철수",
-    "storeName": "N빵치킨",
-    "transactionDate": "2025-12-15",
-    "totalAmount": 100000,
-    "items": [
-      {
-        "name": "후라이드 치킨",
-        "price": 70000,
-        "participants": ["김철수", "이영희", "박대민", "최수진"]
-      },
-      {
-        "name": "생맥주",
-        "price": 30000,
-        "participants": ["김철수", "이영희"]
-      }
-    ]
-  }
-  ```
-  </details>
-
-- `POST /api/v1/settlements/{settlementId}/calculate`: 정산 계산 실행 (Request Body 없음)
+- `POST /api/v1/settlements/{settlementId}/calculate`: 정산 계산 실행
 
 ### OCR
 - `POST /api/v1/ocr/parse`: 영수증 이미지를 분석하여 DTO 형태로 반환 (multipart/form-data)

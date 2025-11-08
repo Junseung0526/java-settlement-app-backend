@@ -5,6 +5,10 @@ import com.nppang.backend.entity.AppUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -48,7 +52,7 @@ public class UserService {
         return future;
     }
 
-    // 사용자 이름으로 사용자를 찾거나, 없으면 새로 생성합니다.
+    // 사용자 이름으로 사용자를 찾거나, 없으면 새로 생성
     public CompletableFuture<AppUser> findOrCreateUser(String username) {
         CompletableFuture<AppUser> future = new CompletableFuture<>();
         DatabaseReference usersRef = firebaseDatabase.getReference(USERS_PATH);
@@ -58,8 +62,21 @@ public class UserService {
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
                     for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                        future.complete(snapshot.getValue(AppUser.class));
-                        return;
+                        try {
+                            AppUser user = new AppUser();
+                            user.setId(snapshot.getKey());
+                            if (snapshot.hasChild("username")) {
+                                user.setUsername(snapshot.child("username").getValue(String.class));
+                            }
+                            if (snapshot.hasChild("password")) {
+                                user.setPassword(snapshot.child("password").getValue(String.class));
+                            }
+                            future.complete(user);
+                            return; // Found the user, exit
+                        } catch (Exception e) {
+                            future.completeExceptionally(e);
+                            return; // Error, exit
+                        }
                     }
                 } else {
                     getLastUserIdAndIncrement().thenAccept(newId -> {
@@ -91,7 +108,7 @@ public class UserService {
         return future;
     }
 
-    // 사용자 ID로 사용자를 찾습니다.
+    // 사용자 ID로 사용자를 찾음
     public CompletableFuture<AppUser> findUserById(String userId) {
         CompletableFuture<AppUser> future = new CompletableFuture<>();
         DatabaseReference userRef = firebaseDatabase.getReference(USERS_PATH).child(userId);
@@ -99,7 +116,19 @@ public class UserService {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
-                    future.complete(dataSnapshot.getValue(AppUser.class));
+                    try {
+                        AppUser user = new AppUser();
+                        user.setId(dataSnapshot.getKey());
+                        if (dataSnapshot.hasChild("username")) {
+                            user.setUsername(dataSnapshot.child("username").getValue(String.class));
+                        }
+                        if (dataSnapshot.hasChild("password")) {
+                            user.setPassword(dataSnapshot.child("password").getValue(String.class));
+                        }
+                        future.complete(user);
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
                 } else {
                     future.complete(null);
                 }
@@ -108,6 +137,47 @@ public class UserService {
             @Override
             public void onCancelled(DatabaseError databaseError) {
                 future.completeExceptionally(databaseError.toException());
+            }
+        });
+        return future;
+    }
+
+    public CompletableFuture<List<AppUser>> findAllUsers() {
+        CompletableFuture<List<AppUser>> future = new CompletableFuture<>();
+        DatabaseReference usersRef = firebaseDatabase.getReference(USERS_PATH);
+        usersRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                List<AppUser> users = new ArrayList<>();
+                if (dataSnapshot.exists()) {
+                    for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                        AppUser user = snapshot.getValue(AppUser.class);
+                        user.setId(snapshot.getKey());
+                        users.add(user);
+                    }
+                }
+                future.complete(users);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                future.completeExceptionally(databaseError.toException());
+            }
+        });
+        return future;
+    }
+
+    public CompletableFuture<Void> updateUser(String userId, String newUsername) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        DatabaseReference userRef = firebaseDatabase.getReference(USERS_PATH).child(userId);
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("username", newUsername);
+
+        userRef.updateChildren(updates, (databaseError, databaseReference) -> {
+            if (databaseError != null) {
+                future.completeExceptionally(databaseError.toException());
+            } else {
+                future.complete(null);
             }
         });
         return future;
