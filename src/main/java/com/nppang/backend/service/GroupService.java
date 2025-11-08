@@ -12,9 +12,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.nppang.backend.entity.Receipt;
 
+import com.nppang.backend.entity.AppUser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -61,11 +63,46 @@ public class GroupService {
         return future;
     }
 
+    // 그룹 정보 업데이트
+    public CompletableFuture<Void> updateGroup(String groupId, String name) {
+        DatabaseReference groupRef = firebaseDatabase.getReference("groups").child(groupId).child("name");
+        return CompletableFuture.runAsync(() -> groupRef.setValueAsync(name));
+    }
+
+    // 그룹 삭제
+    public CompletableFuture<Void> deleteGroup(String groupId) {
+        DatabaseReference groupRef = firebaseDatabase.getReference("groups").child(groupId);
+        return CompletableFuture.runAsync(() -> groupRef.removeValueAsync());
+    }
+
     // 특정 그룹에 사용자를 멤버로 추가
     public CompletableFuture<Void> addMember(String groupId, String userName) {
         return userService.findOrCreateUser(userName).thenAccept(appUser -> {
             DatabaseReference membersRef = firebaseDatabase.getReference("groups").child(groupId).child("members");
             membersRef.child(appUser.getId()).setValueAsync(true);
+        });
+    }
+
+    // 특정 그룹에서 멤버를 삭제
+    public CompletableFuture<Void> deleteMember(String groupId, String userId) {
+        DatabaseReference memberRef = firebaseDatabase.getReference("groups").child(groupId).child("members").child(userId);
+        return CompletableFuture.runAsync(() -> memberRef.removeValueAsync());
+    }
+
+    // 특정 그룹의 멤버 목록을 조회
+    public CompletableFuture<List<AppUser>> getGroupMembers(String groupId) {
+        return getGroup(groupId).thenCompose(userGroup -> {
+            if (userGroup == null || userGroup.getMembers() == null) {
+                return CompletableFuture.completedFuture(new ArrayList<>());
+            }
+            List<CompletableFuture<AppUser>> userFutures = userGroup.getMembers().keySet().stream()
+                    .map(userService::findUserById)
+                    .collect(Collectors.toList());
+
+            return CompletableFuture.allOf(userFutures.toArray(new CompletableFuture[0]))
+                    .thenApply(v -> userFutures.stream()
+                            .map(CompletableFuture::join)
+                            .collect(Collectors.toList()));
         });
     }
 
@@ -132,3 +169,5 @@ public class GroupService {
         return future;
     }
 }
+
+
