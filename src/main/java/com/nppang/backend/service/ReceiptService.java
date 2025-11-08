@@ -94,6 +94,30 @@ public class ReceiptService {
         return future;
     }
 
+
+    public CompletableFuture<List<Receipt>> getReceiptsBySettlementId(String settlementId) {
+        DatabaseReference receiptsRef = firebaseDatabase.getReference(RECEIPTS_PATH);
+        CompletableFuture<List<Receipt>> future = new CompletableFuture<>();
+        receiptsRef.orderByChild("settlementId").equalTo(settlementId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                List<Receipt> receipts = new ArrayList<>();
+                if (dataSnapshot.exists()) {
+                    for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
+                        receipts.add(childSnapshot.getValue(Receipt.class));
+                    }
+                }
+                future.complete(receipts);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                future.completeExceptionally(databaseError.toException());
+            }
+        });
+        return future;
+    }
+
     public CompletableFuture<List<Receipt>> getReceiptsByGroupId(String groupId) {
         DatabaseReference receiptsRef = firebaseDatabase.getReference(RECEIPTS_PATH);
         CompletableFuture<List<Receipt>> future = new CompletableFuture<>();

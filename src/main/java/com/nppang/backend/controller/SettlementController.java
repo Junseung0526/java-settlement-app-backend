@@ -1,7 +1,9 @@
 package com.nppang.backend.controller;
 
 import com.nppang.backend.dto.*;
+import com.nppang.backend.entity.Receipt;
 import com.nppang.backend.entity.Settlement;
+import com.nppang.backend.service.ReceiptService;
 import com.nppang.backend.service.SettlementService;
 
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/settlements")
@@ -18,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 public class SettlementController {
 
     private final SettlementService settlementService;
+    private final ReceiptService receiptService;
 
     // 새로운 정산을 생성하는 API
     @PostMapping
@@ -45,14 +49,16 @@ public class SettlementController {
     // 특정 정산의 상세 정보를 조회하는 API
     @GetMapping("/{settlementId}")
     public CompletableFuture<ResponseEntity<SettlementResponse>> getSettlement(@PathVariable String settlementId) {
-        return settlementService.getSettlement(settlementId).thenApply(settlement -> {
+        CompletableFuture<Settlement> settlementFuture = settlementService.getSettlement(settlementId);
+        CompletableFuture<List<Receipt>> receiptsFuture = receiptService.getReceiptsBySettlementId(settlementId);
+
+        return settlementFuture.thenCombine(receiptsFuture, (settlement, receipts) -> {
             if (settlement == null) {
                 return ResponseEntity.notFound().build();
             }
 
-            // TODO: After calculation, this should fetch receipts with the given settlementId.
-            List<ReceiptDto> receiptDtos = Collections.emptyList();
-            long totalAmount = 0;
+            List<ReceiptDto> receiptDtos = receipts.stream().map(ReceiptDto::from).collect(Collectors.toList());
+            long totalAmount = receipts.stream().mapToLong(r -> r.getTotalAmount() != null ? r.getTotalAmount() : 0).sum();
 
             SettlementResponse response = SettlementResponse.builder()
                     .settlementId(settlement.getId())
@@ -66,7 +72,7 @@ public class SettlementController {
         });
     }
 
-    // 특정 정산의 최종 결과를 계산하는 API
+    // 특정 정산의 최종 결과를 계산하는 API입니다.
     @PostMapping("/{settlementId}/calculate")
     public CompletableFuture<ResponseEntity<CalculationResultDto>> calculateSettlement(
             @PathVariable String settlementId,
