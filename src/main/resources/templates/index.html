@@ -34,6 +34,20 @@
             <p class="lead">모든 API를 이곳에서 테스트할 수 있습니다.</p>
         </header>
 
+        <!-- JWT Token Input for Testing -->
+        <div class="card mb-4">
+            <div class="card-header">JWT 토큰 입력 (테스트용)</div>
+            <div class="card-body">
+                <div class="input-group">
+                    <input type="text" id="jwtTokenInput" class="form-control" placeholder="여기에 JWT 토큰을 붙여넣으세요">
+                    <button id="clearTokenBtn" class="btn btn-outline-secondary">지우기</button>
+                </div>
+                <small class="form-text text-muted mt-2">
+                    Postman 등으로 로그인 후 받은 토큰을 여기에 붙여넣으면, 페이지의 모든 API 요청에 해당 토큰이 사용됩니다.
+                </small>
+            </div>
+        </div>
+
         <div class="row">
             <!-- Left Column -->
             <div class="col-md-6">
@@ -245,22 +259,34 @@
 
             // --- API Functions ---
             const api = {
-                get: (endpoint) => fetch(`${API_BASE_URL}${endpoint}`).then(res => res.json()),
+                _getAuthHeaders: () => {
+                    const token = document.getElementById('jwtTokenInput').value;
+                    return token ? { 'Authorization': `Bearer ${token}` } : {};
+                },
+                get: (endpoint) => fetch(`${API_BASE_URL}${endpoint}`, {
+                    headers: api._getAuthHeaders()
+                }).then(res => res.json()),
                 post: (endpoint, body) => fetch(`${API_BASE_URL}${endpoint}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders() },
                     body: JSON.stringify(body)
                 }).then(res => res.json()),
                 put: (endpoint, body) => fetch(`${API_BASE_URL}${endpoint}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders() },
                     body: JSON.stringify(body)
                 }),
                 postForm: (endpoint, formData) => fetch(`${API_BASE_URL}${endpoint}`, {
                     method: 'POST',
+                    headers: api._getAuthHeaders(), // FormData usually sets Content-Type automatically
                     body: formData
                 }).then(res => res.json()),
             };
+
+            // Clear Token Button
+            document.getElementById('clearTokenBtn').addEventListener('click', () => {
+                document.getElementById('jwtTokenInput').value = '';
+            });
 
             // --- User Panel Logic ---
             async function loadUsers() {

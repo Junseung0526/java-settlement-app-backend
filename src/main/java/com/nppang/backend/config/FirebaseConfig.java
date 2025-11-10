@@ -60,9 +60,9 @@ public class FirebaseConfig {
             e.printStackTrace();
             throw new RuntimeException("Firebase initialization failed.", e);
         } catch (IllegalArgumentException e) {
-             System.err.println("FATAL ERROR: Invalid Base64 string in FIREBASE_SERVICE_ACCOUNT_BASE64.");
-             e.printStackTrace();
-             throw new RuntimeException("Firebase initialization failed due to invalid Base64.", e);
+            System.err.println("FATAL ERROR: Invalid Base64 string in FIREBASE_SERVICE_ACCOUNT_BASE64.");
+            e.printStackTrace();
+            throw new RuntimeException("Firebase initialization failed due to invalid Base64.", e);
         }
     }
 

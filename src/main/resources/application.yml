@@ -26,3 +26,4 @@ firebase:
 # JWT (JSON Web Token) 공용 설정
 jwt:
   expiration-ms: 86400000 # 24시간 (1일)
+  secret: ${JWT_SECRET_KEY}

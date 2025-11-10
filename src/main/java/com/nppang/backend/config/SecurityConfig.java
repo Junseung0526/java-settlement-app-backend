@@ -44,7 +44,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // Swagger UI 경로 허용
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        // IndexController의 index.html 허용
                         .requestMatchers("/index.html").permitAll()
                         // 그 외 모든 요청은 인증 필요
 //                        .anyRequest().authenticated()
