@@ -22,17 +22,23 @@ public class AuthController {
 
     // 회원가입 API
     @PostMapping("/signup")
-    public CompletableFuture<ResponseEntity<String>> registerUser(@RequestBody SignUpRequest signUpRequest) {
-        return userService.registerUser(signUpRequest)
-                .thenApply(user -> ResponseEntity.ok("User registered successfully! User ID: " + user.getId()))
-                .exceptionally(ex -> ResponseEntity.badRequest().body(ex.getMessage()));
+    public ResponseEntity<String> registerUser(@RequestBody SignUpRequest signUpRequest) {
+        try {
+            AppUser user = userService.registerUser(signUpRequest).join();
+            return ResponseEntity.ok("User registered successfully! User ID: " + user.getId());
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
     }
 
     // 로그인 API
     @PostMapping("/login")
-    public CompletableFuture<ResponseEntity<JwtResponse>> authenticateUser(@RequestBody LoginRequest loginRequest) {
-        return authService.login(loginRequest)
-                .thenApply(ResponseEntity::ok)
-                .exceptionally(ex -> ResponseEntity.status(401).body(null)); // 401 Unauthorized
+    public ResponseEntity<JwtResponse> authenticateUser(@RequestBody LoginRequest loginRequest) {
+        try {
+            JwtResponse jwtResponse = authService.login(loginRequest).join();
+            return ResponseEntity.ok(jwtResponse);
+        } catch (Exception ex) {
+            return ResponseEntity.status(401).body(null); // 401 Unauthorized
+        }
     }
 }
