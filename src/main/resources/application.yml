@@ -3,8 +3,8 @@ tesseract:
 
 spring:
   profiles:
-    active: default
-#    active: local
+#    active: default
+    active: local
 
   servlet:
     multipart:
@@ -23,3 +23,6 @@ firebase:
   database-url: ${FIREBASE_DATABASE_URL}
   service-account-source: ${FIREBASE_SERVICE_ACCOUNT_KEY}
 
+# JWT (JSON Web Token) 공용 설정
+jwt:
+  expiration-ms: 86400000 # 24시간 (1일)
