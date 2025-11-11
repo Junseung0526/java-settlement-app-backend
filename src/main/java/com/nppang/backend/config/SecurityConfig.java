@@ -45,10 +45,20 @@ public class SecurityConfig {
                         // Swagger UI 경로 허용
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/index.html").permitAll()
+
+
+
+                        // /api/v1/** 경로는 임시로 모두 허용 (프론트엔드 개발 편의를 위해)
+                        // 개발 완료 후에는 반드시 수정해줘야 함 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                        .requestMatchers("/api/v1/**").permitAll()
+
+
+
+
                         // 그 외 모든 요청은 인증 필요
 //                        .anyRequest().authenticated()
 //                        .anyRequest().hasRole("USER")
-                        .anyRequest().hasAuthority("ROLE_USER")
+//                        .anyRequest().hasAuthority("ROLE_USER")
                 );
 
         // 1. 우리가 만든 JWT 필터를 먼저 추가

@@ -107,4 +107,15 @@ public class GroupController {
             return ResponseEntity.badRequest().build(); // Or more specific error handling
         }
     }
+
+    // 특정 유저가 속한 모든 그룹 목록을 조회하는 API
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<UserGroup>> getGroupsByUserId(@PathVariable String userId) {
+        try {
+            List<UserGroup> groups = groupService.getGroupsByUserId(userId).join();
+            return ResponseEntity.ok(groups);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().build(); // Or more specific error handling
+        }
+    }
 }
