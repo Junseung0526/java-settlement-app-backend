@@ -18,20 +18,32 @@ public class ReceiptController {
     private final ReceiptService receiptService;
 
     @PostMapping("/receipts")
-    public CompletableFuture<ResponseEntity<Receipt>> createReceipt(@RequestBody CreateReceiptRequest request) {
-        return receiptService.createReceipt(request)
-                .thenApply(ResponseEntity::ok);
+    public ResponseEntity<Receipt> createReceipt(@RequestBody CreateReceiptRequest request) {
+        try {
+            Receipt receipt = receiptService.createReceipt(request).join();
+            return ResponseEntity.ok(receipt);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().build(); // Or more specific error handling
+        }
     }
 
     @GetMapping("/receipts/{receiptId}")
-    public CompletableFuture<ResponseEntity<Receipt>> getReceipt(@PathVariable String receiptId) {
-        return receiptService.getReceiptById(receiptId)
-                .thenApply(receipt -> receipt != null ? ResponseEntity.ok(receipt) : ResponseEntity.notFound().build());
+    public ResponseEntity<Receipt> getReceipt(@PathVariable String receiptId) {
+        try {
+            Receipt receipt = receiptService.getReceiptById(receiptId).join();
+            return receipt != null ? ResponseEntity.ok(receipt) : ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().build(); // Or more specific error handling
+        }
     }
 
     @GetMapping("/groups/{groupId}/receipts")
-    public CompletableFuture<ResponseEntity<List<Receipt>>> getGroupReceipts(@PathVariable String groupId) {
-        return receiptService.getReceiptsByGroupId(groupId)
-                .thenApply(ResponseEntity::ok);
+    public ResponseEntity<List<Receipt>> getGroupReceipts(@PathVariable String groupId) {
+        try {
+            List<Receipt> receipts = receiptService.getReceiptsByGroupId(groupId).join();
+            return ResponseEntity.ok(receipts);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().build(); // Or more specific error handling
+        }
     }
 }

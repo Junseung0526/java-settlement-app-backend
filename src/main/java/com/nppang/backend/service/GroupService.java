@@ -220,6 +220,15 @@ public class GroupService {
         });
         return future;
     }
+
+    // 특정 유저가 속한 모든 그룹 목록을 조회
+    public CompletableFuture<List<UserGroup>> getGroupsByUserId(String userId) {
+        return getAllGroups().thenApply(allGroups ->
+                allGroups.stream()
+                        .filter(group -> group.getMembers() != null && group.getMembers().containsKey(userId))
+                        .collect(Collectors.toList())
+        );
+    }
 }
 
 

@@ -48,11 +48,14 @@ public class SettlementController {
 
     // 특정 정산의 상세 정보를 조회하는 API
     @GetMapping("/{settlementId}")
-    public CompletableFuture<ResponseEntity<SettlementResponse>> getSettlement(@PathVariable String settlementId) {
-        CompletableFuture<Settlement> settlementFuture = settlementService.getSettlement(settlementId);
-        CompletableFuture<List<Receipt>> receiptsFuture = receiptService.getReceiptsBySettlementId(settlementId);
+    public ResponseEntity<SettlementResponse> getSettlement(@PathVariable String settlementId) {
+        try {
+            CompletableFuture<Settlement> settlementFuture = settlementService.getSettlement(settlementId);
+            CompletableFuture<List<Receipt>> receiptsFuture = receiptService.getReceiptsBySettlementId(settlementId);
 
-        return settlementFuture.thenCombine(receiptsFuture, (settlement, receipts) -> {
+            Settlement settlement = settlementFuture.join();
+            List<Receipt> receipts = receiptsFuture.join();
+
             if (settlement == null) {
                 return ResponseEntity.notFound().build();
             }
@@ -69,16 +72,21 @@ public class SettlementController {
                     .build();
 
             return ResponseEntity.ok(response);
-        });
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).build(); // Or more specific error handling
+        }
     }
 
     // 특정 정산의 최종 결과를 계산하는 API입니다.
     @PostMapping("/{settlementId}/calculate")
-    public CompletableFuture<ResponseEntity<CalculationResultDto>> calculateSettlement(
+    public ResponseEntity<CalculationResultDto> calculateSettlement(
             @PathVariable String settlementId,
             @RequestBody CalculateSettlementRequest request) {
-        return settlementService.calculateAndFinalizeSettlement(settlementId, request.getReceiptIds())
-                .thenApply(ResponseEntity::ok)
-                .exceptionally(ex -> ResponseEntity.status(500).build());
+        try {
+            CalculationResultDto result = settlementService.calculateAndFinalizeSettlement(settlementId, request.getReceiptIds()).join();
+            return ResponseEntity.ok(result);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).build();
+        }
     }
 }
