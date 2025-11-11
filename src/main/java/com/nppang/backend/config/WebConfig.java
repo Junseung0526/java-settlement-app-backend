@@ -13,7 +13,8 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins(
                         "http://localhost:3000", // React default
                         "http://localhost:5173",  // Vite default
-                        "http://localhost:8080"
+                        "http://localhost:8080",
+                        "https://settlment-app-production.up.railway.app"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "HEAD")
                 .allowedHeaders("*");
