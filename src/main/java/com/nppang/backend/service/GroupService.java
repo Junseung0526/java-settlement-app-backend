@@ -78,10 +78,15 @@ public class GroupService {
     }
 
     // 특정 그룹에 사용자를 멤버로 추가
-    public CompletableFuture<Void> addMember(String groupId, String userName) {
-        return userService.findOrCreateUser(userName).thenAccept(appUser -> {
+    public CompletableFuture<Void> addMember(String groupId, String nickname) {
+        return userService.findUserByNickname(nickname).thenCompose(appUser -> {
+            if (appUser == null) {
+                return CompletableFuture.supplyAsync(() -> {
+                    throw new RuntimeException("User with nickname '" + nickname + "' not found.");
+                });
+            }
             DatabaseReference membersRef = firebaseDatabase.getReference("groups").child(groupId).child("members");
-            membersRef.child(appUser.getId()).setValueAsync(true);
+            return CompletableFuture.runAsync(() -> membersRef.child(appUser.getId()).setValueAsync(true));
         });
     }
 

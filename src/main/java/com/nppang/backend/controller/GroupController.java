@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/v1/groups")
@@ -27,7 +26,7 @@ public class GroupController {
             UserGroup group = groupService.createGroup(request.getName()).join();
             return ResponseEntity.ok(group);
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().build(); // Or more specific error handling
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -38,7 +37,7 @@ public class GroupController {
             List<UserGroup> groups = groupService.getAllGroups().join();
             return ResponseEntity.ok(groups);
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().build(); // Or more specific error handling
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -60,7 +59,7 @@ public class GroupController {
             groupService.updateGroup(groupId, request.getName()).join();
             return ResponseEntity.ok().build();
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().build(); // Or more specific error handling
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -71,18 +70,18 @@ public class GroupController {
             groupService.deleteGroup(groupId).join();
             return ResponseEntity.ok().build();
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().build(); // Or more specific error handling
+            return ResponseEntity.badRequest().build();
         }
     }
 
     // 특정 그룹에 멤버를 추가하는 API
     @PostMapping("/{groupId}/members")
-    public ResponseEntity<Void> addMember(@PathVariable String groupId, @RequestBody AddMemberRequest request) {
+    public ResponseEntity<String> addMember(@PathVariable String groupId, @RequestBody AddMemberRequest request) {
         try {
-            groupService.addMember(groupId, request.getUserName()).join();
+            groupService.addMember(groupId, request.getNickname()).join();
             return ResponseEntity.ok().build();
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().build(); // Or more specific error handling
+            return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
 
@@ -93,7 +92,7 @@ public class GroupController {
             List<AppUser> members = groupService.getGroupMembers(groupId).join();
             return ResponseEntity.ok(members);
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().build(); // Or more specific error handling
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -104,7 +103,7 @@ public class GroupController {
             groupService.deleteMember(groupId, userId).join();
             return ResponseEntity.ok().build();
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().build(); // Or more specific error handling
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -115,7 +114,7 @@ public class GroupController {
             List<UserGroup> groups = groupService.getGroupsByUserId(userId).join();
             return ResponseEntity.ok(groups);
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().build(); // Or more specific error handling
+            return ResponseEntity.badRequest().build();
         }
     }
 }
