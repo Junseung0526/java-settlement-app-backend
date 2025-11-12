@@ -43,7 +43,7 @@ public class UserController {
     @PutMapping("/{userId}")
     public ResponseEntity<Void> updateUser(@PathVariable String userId, @RequestBody UpdateUserRequest request) {
         // [수정] .join()으로 동기식 대기, 반환 타입 ResponseEntity<Void>
-        userService.updateUser(userId, request.getUsername()).join();
+        userService.updateUser(userId, request.getUsername(), request.getNickname()).join();
         return ResponseEntity.ok().build();
     }
 }

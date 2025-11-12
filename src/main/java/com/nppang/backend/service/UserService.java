@@ -84,6 +84,7 @@ public class UserService {
                     AppUser newUser = new AppUser();
                     newUser.setId(userId);
                     newUser.setUsername(request.getUsername());
+                    newUser.setNickname(request.getNickname());
                     // [중요] 비밀번호 암호화
                     newUser.setPassword(passwordEncoder.encode(request.getPassword()));
 
@@ -159,6 +160,9 @@ public class UserService {
                             if (snapshot.hasChild("username")) {
                                 user.setUsername(snapshot.child("username").getValue(String.class));
                             }
+                            if (snapshot.hasChild("nickname")) {
+                                user.setNickname(snapshot.child("nickname").getValue(String.class));
+                            }
                             if (snapshot.hasChild("password")) {
                                 user.setPassword(snapshot.child("password").getValue(String.class));
                             }
@@ -213,6 +217,9 @@ public class UserService {
                         if (dataSnapshot.hasChild("username")) {
                             user.setUsername(dataSnapshot.child("username").getValue(String.class));
                         }
+                        if (dataSnapshot.hasChild("nickname")) {
+                            user.setNickname(dataSnapshot.child("nickname").getValue(String.class));
+                        }
                         if (dataSnapshot.hasChild("password")) {
                             user.setPassword(dataSnapshot.child("password").getValue(String.class));
                         }
@@ -243,8 +250,14 @@ public class UserService {
                 if (dataSnapshot.exists()) {
                     for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                         AppUser user = snapshot.getValue(AppUser.class);
-                        user.setId(snapshot.getKey());
-                        users.add(user);
+                        if (user != null) { // Null check for user
+                            user.setId(snapshot.getKey());
+                            // Explicitly check and set nickname if snapshot.getValue misses it for some reason
+                            if (snapshot.hasChild("nickname") && user.getNickname() == null) {
+                                user.setNickname(snapshot.child("nickname").getValue(String.class));
+                            }
+                            users.add(user);
+                        }
                     }
                 }
                 future.complete(users);
@@ -258,11 +271,54 @@ public class UserService {
         return future;
     }
 
-    public CompletableFuture<Void> updateUser(String userId, String newUsername) {
+    public CompletableFuture<AppUser> findUserByNickname(String nickname) {
+        CompletableFuture<AppUser> future = new CompletableFuture<>();
+        DatabaseReference usersRef = firebaseDatabase.getReference(USERS_PATH);
+
+        usersRef.orderByChild("nickname").equalTo(nickname).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                        try {
+                            AppUser user = snapshot.getValue(AppUser.class);
+                            if (user != null) {
+                                user.setId(snapshot.getKey());
+                                future.complete(user);
+                                return;
+                            }
+                        } catch (Exception e) {
+                            future.completeExceptionally(e);
+                            return;
+                        }
+                    }
+                }
+                future.complete(null);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                future.completeExceptionally(databaseError.toException());
+            }
+        });
+        return future;
+    }
+
+    public CompletableFuture<Void> updateUser(String userId, String newUsername, String newNickname) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         DatabaseReference userRef = firebaseDatabase.getReference(USERS_PATH).child(userId);
         Map<String, Object> updates = new HashMap<>();
-        updates.put("username", newUsername);
+        if (newUsername != null && !newUsername.isEmpty()) {
+            updates.put("username", newUsername);
+        }
+        if (newNickname != null && !newNickname.isEmpty()) {
+            updates.put("nickname", newNickname);
+        }
+
+        if (updates.isEmpty()) {
+            future.complete(null); // Nothing to update
+            return future;
+        }
 
         userRef.updateChildren(updates, (databaseError, databaseReference) -> {
             if (databaseError != null) {
