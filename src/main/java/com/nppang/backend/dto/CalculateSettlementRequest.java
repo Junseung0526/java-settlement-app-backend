@@ -3,8 +3,10 @@ package com.nppang.backend.dto;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 public class CalculateSettlementRequest {
-    // This class is now empty as the calculation is based on stored data.
+    private List<String> receiptIds;
 }

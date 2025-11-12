@@ -3,7 +3,8 @@ tesseract:
 
 spring:
   profiles:
-    active: default
+#    active: default
+    active: local
 
   servlet:
     multipart:
@@ -17,3 +18,12 @@ logging:
     org.apache.coyote.http11: INFO
     com.nppang.backend: DEBUG
     root: INFO
+
+firebase:
+  database-url: ${FIREBASE_DATABASE_URL}
+  service-account-source: ${FIREBASE_SERVICE_ACCOUNT_KEY}
+
+# JWT (JSON Web Token) 공용 설정
+jwt:
+  expiration-ms: 86400000 # 24시간 (1일)
+  secret: ${JWT_SECRET_KEY}

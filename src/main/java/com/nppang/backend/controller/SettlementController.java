@@ -3,7 +3,7 @@ package com.nppang.backend.controller;
 import com.nppang.backend.dto.*;
 import com.nppang.backend.entity.Receipt;
 import com.nppang.backend.entity.Settlement;
-import com.nppang.backend.service.NppangService;
+import com.nppang.backend.service.ReceiptService;
 import com.nppang.backend.service.SettlementService;
 
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class SettlementController {
 
     private final SettlementService settlementService;
-    private final NppangService nppangService;
+    private final ReceiptService receiptService;
 
     // 새로운 정산을 생성하는 API
     @PostMapping
@@ -46,35 +46,22 @@ public class SettlementController {
         }
     }
 
-    // 특정 정산에 영수증을 추가하는 API
-    @PostMapping("/{settlementId}/receipts")
-    public CompletableFuture<ResponseEntity<AddReceiptResponse>> addReceipt(
-            @PathVariable String settlementId,
-            @RequestBody AddReceiptRequest request) {
-
-        return settlementService.addReceiptToSettlement(settlementId, request)
-                .thenApply(receipt ->
-                        new AddReceiptResponse(settlementId, receipt.getId(), ReceiptDto.from(receipt))
-                )
-                .thenApply(ResponseEntity::ok)
-                .exceptionally(ex -> {
-                    return ResponseEntity.status(500).body(null);
-                });
-    }
-
     // 특정 정산의 상세 정보를 조회하는 API
     @GetMapping("/{settlementId}")
-    public CompletableFuture<ResponseEntity<SettlementResponse>> getSettlement(@PathVariable String settlementId) {
-        CompletableFuture<Settlement> settlementFuture = settlementService.getSettlement(settlementId);
-        CompletableFuture<List<Receipt>> receiptsFuture = settlementService.getReceiptsForSettlement(settlementId);
+    public ResponseEntity<SettlementResponse> getSettlement(@PathVariable String settlementId) {
+        try {
+            CompletableFuture<Settlement> settlementFuture = settlementService.getSettlement(settlementId);
+            CompletableFuture<List<Receipt>> receiptsFuture = receiptService.getReceiptsBySettlementId(settlementId);
 
-        return settlementFuture.thenCombine(receiptsFuture, (settlement, receipts) -> {
+            Settlement settlement = settlementFuture.join();
+            List<Receipt> receipts = receiptsFuture.join();
+
             if (settlement == null) {
                 return ResponseEntity.notFound().build();
             }
 
-            long totalAmount = receipts.stream().mapToLong(r -> r.getTotalAmount() != null ? r.getTotalAmount() : 0).sum();
             List<ReceiptDto> receiptDtos = receipts.stream().map(ReceiptDto::from).collect(Collectors.toList());
+            long totalAmount = receipts.stream().mapToLong(r -> r.getTotalAmount() != null ? r.getTotalAmount() : 0).sum();
 
             SettlementResponse response = SettlementResponse.builder()
                     .settlementId(settlement.getId())
@@ -85,16 +72,21 @@ public class SettlementController {
                     .build();
 
             return ResponseEntity.ok(response);
-        });
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).build(); // Or more specific error handling
+        }
     }
 
     // 특정 정산의 최종 결과를 계산하는 API입니다.
     @PostMapping("/{settlementId}/calculate")
-    public CompletableFuture<ResponseEntity<CalculationResultDto>> calculateSettlement(
-            @PathVariable String settlementId) {
-        return settlementService.getSettlement(settlementId)
-                .thenCompose(nppangService::calculateSettlement)
-                .thenApply(ResponseEntity::ok)
-                .exceptionally(ex -> ResponseEntity.status(500).build());
+    public ResponseEntity<CalculationResultDto> calculateSettlement(
+            @PathVariable String settlementId,
+            @RequestBody CalculateSettlementRequest request) {
+        try {
+            CalculationResultDto result = settlementService.calculateAndFinalizeSettlement(settlementId, request.getReceiptIds()).join();
+            return ResponseEntity.ok(result);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).build();
+        }
     }
 }

@@ -1,12 +1,10 @@
-package com.nppang.backend.entity;
+package com.nppang.backend.dto;
 
 import lombok.Data;
 
 @Data
-public class AppUser {
-    private String id;
+public class SignUpRequest {
     private String username;
     private String nickname;
     private String password;
 }
-

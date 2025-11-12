@@ -20,24 +20,23 @@ import java.util.stream.Collectors;
 public class NppangService {
 
     private final GroupService groupService;
-    private final SettlementService settlementService;
+    private final ReceiptService receiptService;
 
     @Autowired
-    public NppangService(GroupService groupService, SettlementService settlementService) {
+    public NppangService(GroupService groupService, ReceiptService receiptService) {
         this.groupService = groupService;
-        this.settlementService = settlementService;
+        this.receiptService = receiptService;
     }
 
     // 정산의 최종 결과를 계산
-    public CompletableFuture<CalculationResultDto> calculateSettlement(Settlement settlement) {
+    public CompletableFuture<CalculationResultDto> calculateSettlement(Settlement settlement, List<Receipt> receipts) {
         if (settlement.getGroupId() == null) {
             throw new IllegalStateException("Settlement is not associated with a group.");
         }
 
         CompletableFuture<UserGroup> groupFuture = groupService.getGroup(settlement.getGroupId());
-        CompletableFuture<List<Receipt>> receiptsFuture = settlementService.getReceiptsForSettlement(settlement.getId());
 
-        return groupFuture.thenCombine(receiptsFuture, (group, receipts) -> {
+        return groupFuture.thenApply(group -> {
             Map<String, Double> balances = new HashMap<>();
             if (group.getMembers() != null) {
                 for (String memberId : group.getMembers().keySet()) {

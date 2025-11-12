@@ -12,12 +12,12 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIgnoreProperties(ignoreUnknown = true) // For mapping from ReceiptDto
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Receipt {
     private String id;
-    private String groupId; // Added for denormalization
-    private String settlementId; // Added for denormalization
-    private String payerId; // Who paid for this receipt
+    private String groupId;
+    private String settlementId;
+    private String payerId;
     private String storeName;
     private String transactionDate;
     private Long totalAmount;

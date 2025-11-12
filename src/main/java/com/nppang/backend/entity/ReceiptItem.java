@@ -14,5 +14,5 @@ import java.util.List;
 public class ReceiptItem {
     private String name;
     private Long price;
-    private List<String> participants; // List of user IDs
+    private List<String> participants;
 }

@@ -5,7 +5,8 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class AddReceiptRequest {
+public class CreateReceiptRequest {
+    private String groupId;
     private String payerId;
     private String storeName;
     private String transactionDate;

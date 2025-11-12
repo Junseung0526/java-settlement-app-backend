@@ -5,12 +5,13 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.nppang.backend.dto.AddReceiptRequest;
+import com.nppang.backend.dto.CalculationResultDto;
 import com.nppang.backend.entity.Receipt;
 import com.nppang.backend.entity.Settlement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -18,6 +19,8 @@ import java.util.concurrent.CompletableFuture;
 public class SettlementService {
 
     private final FirebaseDatabase firebaseDatabase;
+    private final ReceiptService receiptService;
+    private final NppangService nppangService;
 
     // 새로운 정산을 생성
     public Settlement createSettlement(String settlementName, String groupId) {
@@ -32,45 +35,6 @@ public class SettlementService {
 
         newSettlementRef.setValueAsync(settlement);
         return settlement;
-    }
-
-    // 정산에 새로운 영수증을 추가
-    public CompletableFuture<Receipt> addReceiptToSettlement(String settlementId, AddReceiptRequest request) {
-        CompletableFuture<Settlement> settlementFuture = getSettlement(settlementId);
-
-        return settlementFuture.thenCompose(settlement -> {
-            if (settlement == null) {
-                CompletableFuture<Receipt> exceptionalFuture = new CompletableFuture<>();
-                exceptionalFuture.completeExceptionally(new RuntimeException("Settlement not found with id: " + settlementId));
-                return exceptionalFuture;
-            }
-
-            String groupId = settlement.getGroupId();
-            DatabaseReference receiptsRef = firebaseDatabase.getReference("receipts");
-            DatabaseReference newReceiptRef = receiptsRef.push();
-            String receiptId = newReceiptRef.getKey();
-
-            Receipt receipt = Receipt.builder()
-                    .id(receiptId)
-                    .groupId(groupId)
-                    .settlementId(settlementId)
-                    .payerId(request.getPayerId())
-                    .storeName(request.getStoreName())
-                    .transactionDate(request.getTransactionDate())
-                    .totalAmount(request.getTotalAmount())
-                    .items(request.getItems())
-                    .build();
-
-            CompletableFuture<Receipt> saveFuture = new CompletableFuture<>();
-            newReceiptRef.setValue(receipt, (databaseError, databaseReference) -> {
-                if (databaseError == null) {
-                    saveFuture.complete(receipt);
-                } else {
-                    saveFuture.completeExceptionally(databaseError.toException());
-                }
-            });
-            return saveFuture;
-        });
     }
 
     // 특정 정산 정보를 조회
@@ -92,25 +56,21 @@ public class SettlementService {
         return future;
     }
 
-    // 특정 정산에 속한 모든 영수증 목록을 조회
-    public CompletableFuture<java.util.List<Receipt>> getReceiptsForSettlement(String settlementId) {
-        DatabaseReference receiptsRef = firebaseDatabase.getReference("receipts");
-        CompletableFuture<java.util.List<Receipt>> future = new CompletableFuture<>();
-        receiptsRef.orderByChild("settlementId").equalTo(settlementId).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                java.util.List<Receipt> receipts = new java.util.ArrayList<>();
-                for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
-                    receipts.add(childSnapshot.getValue(Receipt.class));
-                }
-                future.complete(receipts);
-            }
+    public CompletableFuture<CalculationResultDto> calculateAndFinalizeSettlement(String settlementId, List<String> receiptIds) {
+        CompletableFuture<Settlement> settlementFuture = getSettlement(settlementId);
+        CompletableFuture<List<Receipt>> receiptsFuture = receiptService.getReceiptsByIds(receiptIds);
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                future.completeExceptionally(databaseError.toException());
+        return settlementFuture.thenCombine(receiptsFuture, (settlement, receipts) -> {
+            if (settlement == null) {
+                throw new IllegalStateException("Settlement not found");
             }
-        });
-        return future;
+            // Call the calculation logic
+            return nppangService.calculateSettlement(settlement, receipts)
+                    .thenCompose(result ->
+                            // After calculation, update the settlementId on all used receipts
+                            receiptService.updateSettlementIdForReceipts(receiptIds, settlementId)
+                                    .thenApply(v -> result) // Return the original calculation result
+                    );
+        }).thenCompose(future -> future);
     }
 }
