@@ -1,6 +1,7 @@
 package com.nppang.backend.controller;
 
 import com.nppang.backend.dto.CreateUserRequest;
+import com.nppang.backend.dto.PendingInvitationDto;
 import com.nppang.backend.dto.UpdateUserRequest;
 import com.nppang.backend.entity.AppUser;
 import com.nppang.backend.service.UserService;
@@ -8,7 +9,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.nppang.backend.service.InvitationService;
+
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 //import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -17,6 +21,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final InvitationService invitationService;
 
     @PostMapping
     public ResponseEntity<AppUser> createUser(@RequestBody CreateUserRequest request) {
@@ -45,5 +50,11 @@ public class UserController {
         // [수정] .join()으로 동기식 대기, 반환 타입 ResponseEntity<Void>
         userService.updateUser(userId, request.getUsername(), request.getNickname()).join();
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{userId}/invitations")
+    public ResponseEntity<List<PendingInvitationDto>> getPendingInvitations(@PathVariable String userId) throws ExecutionException, InterruptedException {
+        List<PendingInvitationDto> invitations = invitationService.getPendingInvitations(userId).get();
+        return ResponseEntity.ok(invitations);
     }
 }
