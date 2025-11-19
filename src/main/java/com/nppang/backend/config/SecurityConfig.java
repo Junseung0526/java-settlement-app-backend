@@ -45,6 +45,7 @@ public class SecurityConfig {
                         // Swagger UI 경로 허용
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/").permitAll()
+                        .requestMatchers("/api/v1/ocr/parse").permitAll()
 
 
 
@@ -65,7 +66,7 @@ public class SecurityConfig {
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         // 2. [핵심] 비동기 보안 컨텍스트 전파 필터를 JWT 필터 *뒤*에 추가
-        http.addFilterAfter(new WebAsyncManagerIntegrationFilter(), JwtAuthenticationFilter.class);
+        // http.addFilterAfter(new WebAsyncManagerIntegrationFilter(), JwtAuthenticationFilter.class);
 
         return http.build();
     }
