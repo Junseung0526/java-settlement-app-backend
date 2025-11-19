@@ -66,7 +66,7 @@
                             <h5>사용자 목록</h5>
                             <button id="loadUsersBtn" class="btn btn-secondary btn-sm mb-2">사용자 목록 새로고침</button>
                             <ul id="userList" class="list-group mb-3"></ul>
-                            
+
                             <hr>
 
                             <h5>그룹 관리</h5>
@@ -76,7 +76,7 @@
                             </form>
                             <button id="loadGroupsBtn" class="btn btn-secondary btn-sm mb-2">그룹 목록 새로고침</button>
                             <select id="groupSelect" class="form-select mb-2"></select>
-                            
+
                             <h5>그룹 멤버</h5>
                              <ul id="memberList" class="list-group"></ul>
                         </div>
@@ -231,7 +231,7 @@
 
             const userList = document.getElementById('userList');
             const loadUsersBtn = document.getElementById('loadUsersBtn');
-            
+
             const groupNameInput = document.getElementById('groupNameInput');
             const createGroupBtn = document.getElementById('createGroupBtn');
             const loadGroupsBtn = document.getElementById('loadGroupsBtn');
@@ -380,7 +380,7 @@
                     });
                 });
             }
-            
+
             async function handleCreateGroup(e) {
                 e.preventDefault();
                 const name = groupNameInput.value;
@@ -410,7 +410,7 @@
                     });
                 }
             });
-            
+
             async function handleInvite(e) {
                 e.preventDefault();
                 const groupId = inviteGroupSelect.value;
@@ -671,8 +671,8 @@
                 }
                 resultHtml += '</ul><h6>송금 목록:</h6><ul class="list-group">';
                 result.transactions.forEach(tx => {
-                    const fromUser = memberMap.get(tx.fromUserId) || `User ${tx.fromUserId}`;
-                    const toUser = memberMap.get(tx.toUserId) || `User ${tx.toUserId}`;
+                    const fromUser = memberMap.get(tx.fromUser) || `User ${tx.fromUser}`;
+                    const toUser = memberMap.get(tx.toUser) || `User ${tx.toUser}`;
                     resultHtml += `<li class="list-group-item">${fromUser} → ${toUser}: ${tx.amount.toFixed(2)}원</li>`;
                 });
                 resultHtml += '</ul>';
