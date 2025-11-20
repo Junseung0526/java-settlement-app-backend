@@ -68,36 +68,51 @@ public class UserService {
         CompletableFuture<AppUser> future = new CompletableFuture<>();
         DatabaseReference usersRef = firebaseDatabase.getReference(USERS_PATH);
 
-        // 1. 사용자 이름 중복 확인
-        usersRef.orderByChild("username").equalTo(request.getUsername()).addListenerForSingleValueEvent(new ValueEventListener() {
+        // 1. 닉네임 중복 확인
+        usersRef.orderByChild("nickname").equalTo(request.getNickname()).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    // 이미 사용 중인 이름
-                    future.completeExceptionally(new RuntimeException("Username is already taken."));
+            public void onDataChange(DataSnapshot nicknameSnapshot) {
+                if (nicknameSnapshot.exists()) {
+                    future.completeExceptionally(new RuntimeException("Nickname is already taken."));
                     return;
                 }
 
-                // 2. 중복이 아니면 새 사용자 생성
-                getLastUserIdAndIncrement().thenAccept(newId -> {
-                    String userId = String.valueOf(newId);
-                    AppUser newUser = new AppUser();
-                    newUser.setId(userId);
-                    newUser.setUsername(request.getUsername());
-                    newUser.setNickname(request.getNickname());
-                    // [중요] 비밀번호 암호화
-                    newUser.setPassword(passwordEncoder.encode(request.getPassword()));
-
-                    usersRef.child(userId).setValue(newUser, (databaseError, databaseReference) -> {
-                        if (databaseError != null) {
-                            future.completeExceptionally(databaseError.toException());
-                        } else {
-                            future.complete(newUser);
+                // 2. 닉네임 중복이 없으면 사용자 이름(이메일) 중복 확인
+                usersRef.orderByChild("username").equalTo(request.getUsername()).addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot usernameSnapshot) {
+                        if (usernameSnapshot.exists()) {
+                            future.completeExceptionally(new RuntimeException("Username is already taken."));
+                            return;
                         }
-                    });
-                }).exceptionally(e -> {
-                    future.completeExceptionally(e);
-                    return null;
+
+                        // 3. 둘 다 중복이 아니면 새 사용자 생성
+                        getLastUserIdAndIncrement().thenAccept(newId -> {
+                            String userId = String.valueOf(newId);
+                            AppUser newUser = new AppUser();
+                            newUser.setId(userId);
+                            newUser.setUsername(request.getUsername());
+                            newUser.setNickname(request.getNickname());
+                            // [중요] 비밀번호 암호화
+                            newUser.setPassword(passwordEncoder.encode(request.getPassword()));
+
+                            usersRef.child(userId).setValue(newUser, (databaseError, databaseReference) -> {
+                                if (databaseError != null) {
+                                    future.completeExceptionally(databaseError.toException());
+                                } else {
+                                    future.complete(newUser);
+                                }
+                            });
+                        }).exceptionally(e -> {
+                            future.completeExceptionally(e);
+                            return null;
+                        });
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        future.completeExceptionally(databaseError.toException());
+                    }
                 });
             }
 

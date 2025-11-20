@@ -33,7 +33,7 @@ public class AuthService {
                     // 비밀번호 일치 -> JWT 생성
                     String jwt = jwtUtil.generateToken(user.getId(), user.getUsername());
 
-                    return new JwtResponse(jwt, user.getId(), user.getUsername());
+                    return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getNickname());
                 });
     }
 }

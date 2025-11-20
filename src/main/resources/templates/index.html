@@ -3,196 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nppang 정산 테스트 페이지</title>
+    <title>Nppang 통합 테스트 페이지</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .container {
-            max-width: 1200px;
-        }
-        .card-header {
-            font-weight: bold;
-        }
-        .form-select-sm {
-            max-width: 250px;
-        }
-        #receiptItemsTable th, #receiptItemsTable td {
-            vertical-align: middle;
-        }
-        #cameraStream {
-            background-color: #000;
-            border-radius: 0.375rem;
-        }
+        body { background-color: #f8f9fa; padding-bottom: 5rem; }
+        .container { max-width: 1200px; }
+        .card-header { font-weight: bold; }
+        #main-app-section { display: none; } /* Hide main app by default */
+        #cameraStream { background-color: #000; border-radius: 0.375rem; }
     </style>
 </head>
 <body>
     <div class="container mt-4">
         <header class="text-center mb-4">
-            <h1>정산 통합 테스트 페이지</h1>
-            <p class="lead">모든 API를 이곳에서 테스트할 수 있습니다.</p>
+            <h1>Nppang 통합 테스트 페이지</h1>
+            <p id="auth-status" class="lead">로그인이 필요합니다.</p>
         </header>
 
-        <!-- JWT Token Input for Testing -->
-        <div class="card mb-4">
-            <div class="card-header">JWT 토큰 입력 (테스트용)</div>
-            <div class="card-body">
-                <div class="input-group">
-                    <input type="text" id="jwtTokenInput" class="form-control" placeholder="여기에 JWT 토큰을 붙여넣으세요">
-                    <button id="clearTokenBtn" class="btn btn-outline-secondary">지우기</button>
-                </div>
-                <small class="form-text text-muted mt-2">
-                    Postman 등으로 로그인 후 받은 토큰을 여기에 붙여넣으면, 페이지의 모든 API 요청에 해당 토큰이 사용됩니다.
-                </small>
-            </div>
-        </div>
-
-        <div class="row">
-            <!-- Left Column -->
-            <div class="col-md-6">
-                <!-- Users Panel -->
-                <div class="card mb-4">
-                    <div class="card-header">1. 사용자 관리</div>
-                    <div class="card-body">
-                        <div class="input-group mb-3">
-                            <input type="text" id="newUsername" class="form-control" placeholder="새 사용자 이름">
-                            <button id="createUserBtn" class="btn btn-success">사용자 생성</button>
-                        </div>
-                        <button id="loadUsersBtn" class="btn btn-primary btn-sm mb-2">사용자 목록 새로고침</button>
-                        <ul id="userList" class="list-group mb-3"></ul>
-                        <div id="updateUserForm" class="d-none">
-                            <h5>사용자 이름 변경</h5>
-                            <div class="input-group">
-                                <input type="text" id="newUsernameInput" class="form-control" placeholder="새로운 이름">
-                                <button id="updateUserBtn" class="btn btn-outline-secondary">변경</button>
-                            </div>
+        <!-- Auth Section -->
+        <div id="auth-section">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">회원가입</div>
+                        <div class="card-body">
+                            <form id="signup-form">
+                                <div class="mb-2"><input type="email" id="signup-email" class="form-control" placeholder="이메일 (로그인 시 사용)" required></div>
+                                <div class="mb-2"><input type="text" id="signup-nickname" class="form-control" placeholder="닉네임 (초대 시 사용)" required></div>
+                                <div class="mb-2"><input type="password" id="signup-password" class="form-control" placeholder="비밀번호" required></div>
+                                <button type="submit" class="btn btn-primary w-100">회원가입</button>
+                            </form>
                         </div>
                     </div>
                 </div>
-
-                <!-- Groups Panel -->
-                <div class="card mb-4">
-                    <div class="card-header">2. 그룹 관리</div>
-                    <div class="card-body">
-                        <div class="input-group mb-3">
-                            <input type="text" id="groupNameInput" class="form-control" placeholder="새 그룹 이름">
-                            <button id="createGroupBtn" class="btn btn-success">그룹 생성</button>
-                        </div>
-                        <button id="loadGroupsBtn" class="btn btn-primary btn-sm mb-2">그룹 목록 새로고침</button>
-                        <select id="groupSelect" class="form-select mb-2"></select>
-
-                        <h5>그룹 멤버</h5>
-                        <div class="input-group mb-3">
-                            <select id="userSelectForGroup" class="form-select"></select>
-                            <button id="addMemberBtn" class="btn btn-outline-secondary">멤버 추가</button>
-                        </div>
-                        <ul id="memberList" class="list-group"></ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Column -->
-            <div class="col-md-6">
-                <!-- Receipts Panel -->
-                <div class="card mb-4">
-                    <div class="card-header">3. 영수증 관리</div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="receiptGroupSelect" class="form-label">영수증을 추가할 그룹:</label>
-                            <select id="receiptGroupSelect" class="form-select"></select>
-                        </div>
-                        <button id="loadReceiptsBtn" class="btn btn-primary btn-sm mb-3">선택한 그룹의 영수증 불러오기</button>
-                        <ul id="receiptList" class="list-group mb-3"></ul>
-
-                        <nav>
-                            <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                                <button class="nav-link active" id="nav-manual-tab" data-bs-toggle="tab" data-bs-target="#nav-manual" type="button" role="tab">수동 등록</button>
-                                <button class="nav-link" id="nav-ocr-tab" data-bs-toggle="tab" data-bs-target="#nav-ocr" type="button" role="tab">파일 OCR</button>
-                                <button class="nav-link" id="nav-camera-tab" data-bs-toggle="tab" data-bs-target="#nav-camera" type="button" role="tab">카메라 OCR</button>
-                            </div>
-                        </nav>
-                        <div class="tab-content border border-top-0 p-3" id="nav-tabContent">
-                            <div class="tab-pane fade show active" id="nav-manual" role="tabpanel">
-                                <h5 class="mt-2">영수증 정보</h5>
-                                <div class="row g-2 mb-2">
-                                    <div class="col-md-6">
-                                        <input type="text" id="storeNameInput" class="form-control" placeholder="가게 이름">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <input type="date" id="transactionDateInput" class="form-control">
-                                    </div>
-                                </div>
-                                <div class="row g-2 mb-2">
-                                    <div class="col-md-6">
-                                        <input type="number" id="totalAmountInput" class="form-control" placeholder="총액">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <select id="payerSelect" class="form-select" placeholder="결제자"></select>
-                                    </div>
-                                </div>
-                                <h6>항목</h6>
-                                <table id="receiptItemsTable" class="table table-sm">
-                                    <thead><tr><th>이름</th><th>가격</th><th>참여자</th><th></th></tr></thead>
-                                    <tbody></tbody>
-                                </table>
-                                <button id="addItemBtn" class="btn btn-secondary btn-sm">항목 추가</button>
-                                <hr>
-                                <button id="submitReceiptBtn" class="btn btn-success w-100">영수증 제출</button>
-                            </div>
-                            <div class="tab-pane fade" id="nav-ocr" role="tabpanel">
-                                <div class="input-group mt-2">
-                                    <input type="file" id="ocrFile" class="form-control" accept="image/*">
-                                    <button id="ocrParseBtn" class="btn btn-info">파일로 분석</button>
-                                </div>
-                            </div>
-                            <div class="tab-pane fade" id="nav-camera" role="tabpanel">
-                                <div class="text-center mt-2">
-                                    <button id="startCameraBtn" class="btn btn-secondary">카메라 시작</button>
-                                    <div id="cameraContainer" class="d-none mt-2">
-                                        <video id="cameraStream" width="100%" autoplay playsinline></video>
-                                        <canvas id="cameraCanvas" class="d-none"></canvas>
-                                        <button id="captureBtn" class="btn btn-primary mt-2">촬영 및 분석</button>
-                                        <button id="stopCameraBtn" class="btn btn-danger mt-2">카메라 중지</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="ocrSpinner" class="d-none text-center mt-2">
-                            <div class="spinner-border" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">로그인</div>
+                        <div class="card-body">
+                            <form id="login-form">
+                                <div class="mb-2"><input type="email" id="login-email" class="form-control" placeholder="이메일" required></div>
+                                <div class="mb-2"><input type="password" id="login-password" class="form-control" placeholder="비밀번호" required></div>
+                                <button type="submit" class="btn btn-success w-100">로그인</button>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Settlement Panel -->
-        <div class="card mb-4">
-            <div class="card-header">4. 정산 관리</div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label for="settlementGroupSelect" class="form-label">정산할 그룹:</label>
-                        <select id="settlementGroupSelect" class="form-select mb-2"></select>
-                        <div class="input-group mb-3">
-                            <input type="text" id="settlementNameInput" class="form-control" placeholder="새 정산 이름">
-                            <button id="createSettlementBtn" class="btn btn-success">정산 생성</button>
+        <!-- Main App Section (original content) -->
+        <div id="main-app-section">
+            <div class="d-flex justify-content-end mb-3">
+                <button id="logout-btn" class="btn btn-danger">로그아웃</button>
+            </div>
+            <div class="row">
+                <!-- Left Column -->
+                <div class="col-md-6">
+                    <!-- Users Panel -->
+                    <div class="card mb-4">
+                        <div class="card-header">1. 사용자 및 그룹 관리</div>
+                        <div class="card-body">
+                            <h5>사용자 목록</h5>
+                            <button id="loadUsersBtn" class="btn btn-secondary btn-sm mb-2">사용자 목록 새로고침</button>
+                            <ul id="userList" class="list-group mb-3"></ul>
+
+                            <hr>
+
+                            <h5>그룹 관리</h5>
+                            <form id="create-group-form" class="input-group mb-3">
+                                <input type="text" id="groupNameInput" class="form-control" placeholder="새 그룹 이름">
+                                <button id="createGroupBtn" class="btn btn-success">그룹 생성</button>
+                            </form>
+                            <button id="loadGroupsBtn" class="btn btn-secondary btn-sm mb-2">그룹 목록 새로고침</button>
+                            <select id="groupSelect" class="form-select mb-2"></select>
+
+                            <h5>그룹 멤버</h5>
+                             <ul id="memberList" class="list-group"></ul>
                         </div>
-                        <label for="settlementSelect" class="form-label">생성된 정산:</label>
-                        <select id="settlementSelect" class="form-select"></select>
                     </div>
-                    <div class="col-md-8">
-                        <h5>정산에 포함할 영수증 선택 (정산 미완료)</h5>
-                        <div id="unsettledReceiptsList" class="list-group mb-3" style="max-height: 200px; overflow-y: auto;"></div>
-                        <button id="calculateSettlementBtn" class="btn btn-danger">선택한 영수증으로 정산 계산</button>
+                     <!-- Invitation Panel -->
+                    <div class="card mb-4">
+                        <div class="card-header">2. 초대 관리</div>
+                        <div class="card-body">
+                            <h5>사용자 초대</h5>
+                            <form id="invite-form">
+                                <div class="mb-2">
+                                    <label for="invite-group-select" class="form-label">초대할 그룹:</label>
+                                    <select id="invite-group-select" class="form-select" required></select>
+                                </div>
+                                <div class="mb-2">
+                                    <label for="invite-nickname" class="form-label">초대할 사용자 닉네임:</label>
+                                    <input type="text" id="invite-nickname" class="form-control" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">초대하기</button>
+                            </form>
+                            <hr>
+                            <h5>받은 초대 목록</h5>
+                            <button id="fetch-invitations-btn" class="btn btn-secondary mb-2 btn-sm">받은 초대 새로고침</button>
+                            <ul id="invitation-list" class="list-group"></ul>
+                        </div>
                     </div>
                 </div>
-                <hr>
-                <h5>정산 결과</h5>
-                <div id="settlementResult" class="p-3 bg-light rounded">결과가 여기에 표시됩니다.</div>
+
+                <!-- Right Column -->
+                <div class="col-md-6">
+                    <!-- Receipts Panel -->
+                    <div class="card mb-4">
+                        <div class="card-header">3. 영수증 관리</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="receiptGroupSelect" class="form-label">영수증을 추가/조회할 그룹:</label>
+                                <select id="receiptGroupSelect" class="form-select"></select>
+                            </div>
+                            <button id="loadReceiptsBtn" class="btn btn-secondary btn-sm mb-3">선택한 그룹의 영수증 불러오기</button>
+                            <ul id="receiptList" class="list-group mb-3"></ul>
+
+                            <nav>
+                                <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                                    <button class="nav-link active" id="nav-manual-tab" data-bs-toggle="tab" data-bs-target="#nav-manual" type="button" role="tab">수동 등록</button>
+                                    <button class="nav-link" id="nav-ocr-tab" data-bs-toggle="tab" data-bs-target="#nav-ocr" type="button" role="tab">파일 OCR</button>
+                                    <button class="nav-link" id="nav-camera-tab" data-bs-toggle="tab" data-bs-target="#nav-camera" type="button" role="tab">카메라 OCR</button>
+                                </div>
+                            </nav>
+                            <div class="tab-content border border-top-0 p-3" id="nav-tabContent">
+                                <div class="tab-pane fade show active" id="nav-manual" role="tabpanel">
+                                    <h5 class="mt-2">영수증 정보</h5>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-md-6"><input type="text" id="storeNameInput" class="form-control" placeholder="가게 이름"></div>
+                                        <div class="col-md-6"><input type="date" id="transactionDateInput" class="form-control"></div>
+                                    </div>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-md-6"><input type="number" id="totalAmountInput" class="form-control" placeholder="총액"></div>
+                                        <div class="col-md-6"><select id="payerSelect" class="form-select" placeholder="결제자"></select></div>
+                                    </div>
+                                    <h6>항목</h6>
+                                    <table id="receiptItemsTable" class="table table-sm">
+                                        <thead><tr><th>이름</th><th>가격</th><th>참여자</th><th></th></tr></thead>
+                                        <tbody></tbody>
+                                    </table>
+                                    <button id="addItemBtn" class="btn btn-secondary btn-sm">항목 추가</button>
+                                    <hr>
+                                    <button id="submitReceiptBtn" class="btn btn-success w-100">영수증 제출</button>
+                                </div>
+                                <div class="tab-pane fade" id="nav-ocr" role="tabpanel">
+                                    <div class="input-group mt-2">
+                                        <input type="file" id="ocrFile" class="form-control" accept="image/*">
+                                        <button id="ocrParseBtn" class="btn btn-info">파일로 분석</button>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="nav-camera" role="tabpanel">
+                                    <div class="text-center mt-2">
+                                        <button id="startCameraBtn" class="btn btn-secondary">카메라 시작</button>
+                                        <div id="cameraContainer" class="d-none mt-2">
+                                            <video id="cameraStream" width="100%" autoplay playsinline></video>
+                                            <canvas id="cameraCanvas" class="d-none"></canvas>
+                                            <button id="captureBtn" class="btn btn-primary mt-2">촬영 및 분석</button>
+                                            <button id="stopCameraBtn" class="btn btn-danger mt-2">카메라 중지</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="ocrSpinner" class="d-none text-center mt-2"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Settlement Panel -->
+            <div class="card mb-4">
+                <div class="card-header">4. 정산 관리</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="settlementGroupSelect" class="form-label">정산할 그룹:</label>
+                            <select id="settlementGroupSelect" class="form-select mb-2"></select>
+                            <div class="input-group mb-3">
+                                <input type="text" id="settlementNameInput" class="form-control" placeholder="새 정산 이름">
+                                <button id="createSettlementBtn" class="btn btn-success">정산 생성</button>
+                            </div>
+                            <label for="settlementSelect" class="form-label">생성된 정산:</label>
+                            <select id="settlementSelect" class="form-select"></select>
+                        </div>
+                        <div class="col-md-8">
+                            <h5>정산에 포함할 영수증 선택 (정산 미완료)</h5>
+                            <div id="unsettledReceiptsList" class="list-group mb-3" style="max-height: 200px; overflow-y: auto;"></div>
+                            <button id="calculateSettlementBtn" class="btn btn-danger">선택한 영수증으로 정산 계산</button>
+                        </div>
+                    </div>
+                    <hr>
+                    <h5>정산 결과</h5>
+                    <div id="settlementResult" class="p-3 bg-light rounded">결과가 여기에 표시됩니다.</div>
+                </div>
+            </div>
+        </div>
+         <!-- Log Section -->
+        <div class="card">
+            <div class="card-header">API Log</div>
+            <div id="log-box" class="card-body" style="background-color: #212529; color: #f8f9fa; font-family: monospace; font-size: 0.875em; white-space: pre-wrap; word-break: break-all; height: 300px; overflow-y: scroll;"></div>
         </div>
     </div>
 
@@ -201,32 +208,40 @@
         document.addEventListener('DOMContentLoaded', () => {
             const API_BASE_URL = '/api/v1';
 
-            // State
-            let users = [];
-            let groups = [];
-            let selectedUserId = null;
-            let selectedGroupForMember = null;
-            let selectedGroupForReceipt = null;
-            let selectedGroupForSettlement = null;
-            let selectedSettlementId = null;
-            let cameraStream = null;
+            // --- State ---
+            const state = {
+                token: null,
+                userId: null,
+                nickname: null,
+                users: [],
+                groups: [],
+                selectedGroupForMember: null,
+                selectedGroupForReceipt: null,
+                selectedGroupForSettlement: null,
+                selectedSettlementId: null,
+                cameraStream: null
+            };
 
-            // Element Selectors
+            // --- Element Selectors ---
+            const authSection = document.getElementById('auth-section');
+            const mainAppSection = document.getElementById('main-app-section');
+            const authStatus = document.getElementById('auth-status');
+            const logBox = document.getElementById('log-box');
+            const logoutBtn = document.getElementById('logout-btn');
+
             const userList = document.getElementById('userList');
             const loadUsersBtn = document.getElementById('loadUsersBtn');
-            const updateUserForm = document.getElementById('updateUserForm');
-            const newUsernameInput = document.getElementById('newUsernameInput');
-            const updateUserBtn = document.getElementById('updateUserBtn');
-            const newUsername = document.getElementById('newUsername');
-            const createUserBtn = document.getElementById('createUserBtn');
 
             const groupNameInput = document.getElementById('groupNameInput');
             const createGroupBtn = document.getElementById('createGroupBtn');
             const loadGroupsBtn = document.getElementById('loadGroupsBtn');
             const groupSelect = document.getElementById('groupSelect');
-            const userSelectForGroup = document.getElementById('userSelectForGroup');
-            const addMemberBtn = document.getElementById('addMemberBtn');
             const memberList = document.getElementById('memberList');
+
+            const inviteGroupSelect = document.getElementById('invite-group-select');
+            const inviteNicknameInput = document.getElementById('invite-nickname');
+            const fetchInvitationsBtn = document.getElementById('fetch-invitations-btn');
+            const invitationList = document.getElementById('invitation-list');
 
             const receiptGroupSelect = document.getElementById('receiptGroupSelect');
             const loadReceiptsBtn = document.getElementById('loadReceiptsBtn');
@@ -257,94 +272,108 @@
             const calculateSettlementBtn = document.getElementById('calculateSettlementBtn');
             const settlementResult = document.getElementById('settlementResult');
 
-            // --- API Functions ---
-            const api = {
-                _getAuthHeaders: () => {
-                    const token = document.getElementById('jwtTokenInput').value;
-                    return token ? { 'Authorization': `Bearer ${token}` } : {};
-                },
-                get: (endpoint) => fetch(`${API_BASE_URL}${endpoint}`, {
-                    headers: api._getAuthHeaders()
-                }).then(res => res.json()),
-                post: (endpoint, body) => fetch(`${API_BASE_URL}${endpoint}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders() },
-                    body: JSON.stringify(body)
-                }).then(res => res.json()),
-                put: (endpoint, body) => fetch(`${API_BASE_URL}${endpoint}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders() },
-                    body: JSON.stringify(body)
-                }),
-                postForm: (endpoint, formData) => fetch(`${API_BASE_URL}${endpoint}`, {
-                    method: 'POST',
-                    headers: api._getAuthHeaders(), // FormData usually sets Content-Type automatically
-                    body: formData
-                }).then(res => res.json()),
-            };
+            // --- Logger ---
+            function log(action, data, status = 'OK') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = `[${timestamp}] ${action} - ${status}\n${JSON.stringify(data, null, 2)}\n\n`;
+                logBox.textContent = logEntry + logBox.textContent;
+            }
 
-            // Clear Token Button
-            document.getElementById('clearTokenBtn').addEventListener('click', () => {
-                document.getElementById('jwtTokenInput').value = '';
-            });
+            // --- API Helper ---
+            async function apiCall(endpoint, method = 'GET', body = null) {
+                const headers = { 'Content-Type': 'application/json' };
+                if (state.token) {
+                    headers['Authorization'] = `Bearer ${state.token}`;
+                }
+                const options = { method, headers };
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+                try {
+                    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok) throw { status: response.status, data };
+                    log(`${method} ${endpoint}`, data, `Status: ${response.status}`);
+                    return data;
+                } catch (error) {
+                    log(`${method} ${endpoint}`, error.data, `Error: ${error.status}`);
+                    alert(`Error: ${error.status}\n${JSON.stringify(error.data, null, 2)}`);
+                    throw error;
+                }
+            }
+             async function apiCallForm(endpoint, formData) {
+                const headers = {};
+                if (state.token) {
+                    headers['Authorization'] = `Bearer ${state.token}`;
+                }
+                try {
+                    const response = await fetch(`${API_BASE_URL}${endpoint}`, { method: 'POST', headers, body: formData });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok) throw { status: response.status, data };
+                    log(`POST ${endpoint}`, data, `Status: ${response.status}`);
+                    return data;
+                } catch (error) {
+                    log(`POST ${endpoint}`, error.data, `Error: ${error.status}`);
+                    alert(`Error: ${error.status}\n${JSON.stringify(error.data, null, 2)}`);
+                    throw error;
+                }
+            }
 
-            // --- User Panel Logic ---
+            // --- Auth Functions ---
+            async function handleSignup(e) {
+                e.preventDefault();
+                const email = document.getElementById('signup-email').value;
+                const nickname = document.getElementById('signup-nickname').value;
+                const password = document.getElementById('signup-password').value;
+                await apiCall('/auth/signup', 'POST', { username: email, nickname, password });
+                alert('회원가입 성공! 이제 로그인해주세요.');
+                e.target.reset();
+            }
+
+            async function handleLogin(e) {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                const data = await apiCall('/auth/login', 'POST', { username: email, password });
+                state.token = data.accessToken;
+                state.userId = data.userId;
+                state.nickname = data.nickname;
+                updateUIForLogin();
+            }
+
+            function updateUIForLogin() {
+                authSection.style.display = 'none';
+                mainAppSection.style.display = 'block';
+                authStatus.textContent = `로그인됨: ${state.nickname} (ID: ${state.userId})`;
+                initializeMainApp();
+            }
+
+            function updateUIForLogout() {
+                authSection.style.display = 'block';
+                mainAppSection.style.display = 'none';
+                authStatus.textContent = '로그인이 필요합니다.';
+                state.token = null;
+                state.userId = null;
+                state.nickname = null;
+            }
+
+            // --- Main App Logic ---
             async function loadUsers() {
-                users = await api.get('/users');
+                state.users = await apiCall('/users');
                 userList.innerHTML = '';
-                userSelectForGroup.innerHTML = '<option value="">멤버로 추가할 사용자 선택</option>';
-                users.forEach(user => {
+                state.users.forEach(user => {
                     const li = document.createElement('li');
-                    li.className = 'list-group-item list-group-item-action';
-                    li.textContent = `${user.username} (ID: ${user.id})`;
-                    li.dataset.userId = user.id;
-                    li.style.cursor = 'pointer';
-                    li.addEventListener('click', () => {
-                        selectedUserId = user.id;
-                        updateUserForm.classList.remove('d-none');
-                        newUsernameInput.value = user.username;
-                        document.querySelectorAll('#userList .list-group-item').forEach(item => item.classList.remove('active'));
-                        li.classList.add('active');
-                    });
+                    li.className = 'list-group-item';
+                    li.textContent = `${user.nickname} (ID: ${user.id}, Email: ${user.username})`;
                     userList.appendChild(li);
-
-                    const option = new Option(`${user.username} (ID: ${user.id})`, user.id);
-                    userSelectForGroup.add(option);
                 });
             }
 
-            createUserBtn.addEventListener('click', async () => {
-                const username = newUsername.value;
-                if (!username) {
-                    alert('사용자 이름을 입력하세요.');
-                    return;
-                }
-                await api.post('/users', { username });
-                alert(`사용자 '${username}'이(가) 생성되었습니다.`);
-                newUsername.value = '';
-                loadUsers();
-            });
-
-            updateUserBtn.addEventListener('click', async () => {
-                if (!selectedUserId) return;
-                const newUsernameValue = newUsernameInput.value;
-                if (!newUsernameValue) {
-                    alert('새로운 이름을 입력하세요.');
-                    return;
-                }
-                await api.put(`/users/${selectedUserId}`, { username: newUsernameValue });
-                alert('사용자 이름이 변경되었습니다.');
-                selectedUserId = null;
-                updateUserForm.classList.add('d-none');
-                loadUsers();
-            });
-
-            // --- Group Panel Logic ---
             async function loadGroups() {
-                groups = await api.get('/groups');
-                const selects = [groupSelect, receiptGroupSelect, settlementGroupSelect];
+                state.groups = await apiCall(`/groups/user/${state.userId}`);
+                const selects = [groupSelect, receiptGroupSelect, settlementGroupSelect, inviteGroupSelect];
                 selects.forEach(s => s.innerHTML = '<option value="">그룹 선택</option>');
-                groups.forEach(group => {
+                state.groups.forEach(group => {
                     selects.forEach(s => {
                         const option = new Option(`${group.name} (ID: ${group.id})`, group.id);
                         s.add(option.cloneNode(true));
@@ -352,51 +381,85 @@
                 });
             }
 
-            createGroupBtn.addEventListener('click', async () => {
+            async function handleCreateGroup(e) {
+                e.preventDefault();
                 const name = groupNameInput.value;
-                if (!name) {
-                    alert('그룹 이름을 입력하세요.');
-                    return;
-                }
-                await api.post('/groups', { name });
-                alert('그룹이 생성되었습니다.');
+                if (!name) return;
+                await apiCall('/groups', 'POST', { name });
                 groupNameInput.value = '';
                 loadGroups();
-            });
+            }
 
             groupSelect.addEventListener('change', async (e) => {
-                selectedGroupForMember = e.target.value;
-                if (!selectedGroupForMember) {
+                state.selectedGroupForMember = e.target.value;
+                if (!state.selectedGroupForMember) {
                     memberList.innerHTML = '';
                     return;
                 }
-                const group = await api.get(`/groups/${selectedGroupForMember}`);
+                const group = await apiCall(`/groups/${state.selectedGroupForMember}`);
                 memberList.innerHTML = '';
                 if (group.members) {
                     const memberIds = Object.keys(group.members);
-                    const memberPromises = memberIds.map(id => api.get(`/users/${id}`));
+                    const memberPromises = memberIds.map(id => apiCall(`/users/${id}`));
                     const groupMembers = await Promise.all(memberPromises);
-
                     groupMembers.forEach(member => {
                         const li = document.createElement('li');
                         li.className = 'list-group-item';
-                        li.textContent = `${member.username} (ID: ${member.id})`;
+                        li.textContent = `${member.nickname} (ID: ${member.id})`;
                         memberList.appendChild(li);
                     });
                 }
             });
 
-            addMemberBtn.addEventListener('click', async () => {
-                const userId = userSelectForGroup.value;
-                if (!selectedGroupForMember || !userId) {
-                    alert('그룹과 추가할 멤버를 선택하세요.');
+            async function handleInvite(e) {
+                e.preventDefault();
+                const groupId = inviteGroupSelect.value;
+                const inviteeNickname = inviteNicknameInput.value;
+                if (!groupId || !inviteeNickname) return;
+                await apiCall('/invitations', 'POST', { groupId, inviterId: state.userId, inviteeNickname });
+                alert(`'${inviteeNickname}'님을 초대했습니다.`);
+                inviteNicknameInput.value = '';
+            }
+
+            async function fetchPendingInvitations() {
+                const invitations = await apiCall(`/invitations/pending`);
+                invitationList.innerHTML = '';
+                if (!invitations || invitations.length === 0) {
+                    invitationList.innerHTML = '<li class="list-group-item">받은 초대가 없습니다.</li>';
                     return;
                 }
-                const user = users.find(u => u.id === userId);
-                await api.post(`/groups/${selectedGroupForMember}/members`, { userName: user.username });
-                alert('멤버가 추가되었습니다.');
-                groupSelect.dispatchEvent(new Event('change'));
-            });
+                invitations.forEach(inv => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.textContent = `'${inv.inviterNickname}'님이 '${inv.groupName}' 그룹으로 초대했습니다.`;
+                    const buttons = document.createElement('div');
+                    const acceptBtn = document.createElement('button');
+                    acceptBtn.className = 'btn btn-success btn-sm me-2';
+                    acceptBtn.textContent = '수락';
+                    acceptBtn.onclick = () => handleAcceptInvitation(inv.invitationId);
+                    const rejectBtn = document.createElement('button');
+                    rejectBtn.className = 'btn btn-danger btn-sm';
+                    rejectBtn.textContent = '거절';
+                    rejectBtn.onclick = () => handleRejectInvitation(inv.invitationId);
+                    buttons.appendChild(acceptBtn);
+                    buttons.appendChild(rejectBtn);
+                    li.appendChild(buttons);
+                    invitationList.appendChild(li);
+                });
+            }
+
+            async function handleAcceptInvitation(invitationId) {
+                await apiCall(`/invitations/${invitationId}/accept`, 'POST');
+                alert('초대를 수락했습니다.');
+                fetchPendingInvitations();
+                loadGroups();
+            }
+
+            async function handleRejectInvitation(invitationId) {
+                await apiCall(`/invitations/${invitationId}/reject`, 'POST');
+                alert('초대를 거절했습니다.');
+                fetchPendingInvitations();
+            }
 
             // --- Receipt Panel Logic ---
             async function populatePayerAndParticipants(groupId) {
@@ -405,16 +468,14 @@
                     updateReceiptItemsParticipants([]);
                     return;
                 }
-
-                const group = await api.get(`/groups/${groupId}`);
+                const group = await apiCall(`/groups/${groupId}`);
                 let groupMembers = [];
                 if (group.members) {
                     const memberIds = Object.keys(group.members);
-                    const memberPromises = memberIds.map(id => api.get(`/users/${id}`));
+                    const memberPromises = memberIds.map(id => apiCall(`/users/${id}`));
                     groupMembers = await Promise.all(memberPromises);
-
                     groupMembers.forEach(member => {
-                        const option = new Option(`${member.username} (ID: ${member.id})`, member.id);
+                        const option = new Option(`${member.nickname} (ID: ${member.id})`, member.id);
                         payerSelect.add(option);
                     });
                 }
@@ -422,17 +483,14 @@
             }
 
             receiptGroupSelect.addEventListener('change', (e) => {
-                selectedGroupForReceipt = e.target.value;
+                state.selectedGroupForReceipt = e.target.value;
                 receiptList.innerHTML = '';
-                populatePayerAndParticipants(selectedGroupForReceipt);
+                populatePayerAndParticipants(state.selectedGroupForReceipt);
             });
 
             loadReceiptsBtn.addEventListener('click', async () => {
-                if (!selectedGroupForReceipt) {
-                    alert('그룹을 먼저 선택하세요.');
-                    return;
-                }
-                const receipts = await api.get(`/groups/${selectedGroupForReceipt}/receipts`);
+                if (!state.selectedGroupForReceipt) return alert('그룹을 먼저 선택하세요.');
+                const receipts = await apiCall(`/groups/${state.selectedGroupForReceipt}/receipts`);
                 receiptList.innerHTML = '';
                 receipts.forEach(r => {
                     const li = document.createElement('li');
@@ -445,20 +503,16 @@
             function addReceiptItemRow(item = { name: '', price: 0, participants: [] }) {
                 const row = receiptItemsTableBody.insertRow();
                 const members = Array.from(payerSelect.options).slice(1).map(opt => ({ id: opt.value, name: opt.text }));
-
                 let participantCheckboxes = members.map(member => `
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" value="${member.id}" ${item.participants.includes(member.id) ? 'checked' : ''}>
                         <label class="form-check-label">${member.name.split(' ')[0]}</label>
-                    </div>
-                `).join('');
-
+                    </div>`).join('');
                 row.innerHTML = `
                     <td><input type="text" class="form-control form-control-sm" value="${item.name}" placeholder="항목명"></td>
                     <td><input type="number" class="form-control form-control-sm" value="${item.price}" placeholder="가격"></td>
                     <td>${participantCheckboxes}</td>
-                    <td><button class="btn btn-danger btn-sm">X</button></td>
-                `;
+                    <td><button class="btn btn-danger btn-sm">X</button></td>`;
                 row.querySelector('button').addEventListener('click', () => row.remove());
             }
 
@@ -469,8 +523,7 @@
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" value="${member.id}" ${currentParticipants.includes(member.id) ? 'checked' : ''}>
                             <label class="form-check-label">${member.name.split(' ')[0]}</label>
-                        </div>
-                    `).join('');
+                        </div>`).join('');
                     row.cells[2].innerHTML = participantCheckboxes;
                 });
             }
@@ -478,37 +531,24 @@
             addItemBtn.addEventListener('click', () => addReceiptItemRow());
 
             submitReceiptBtn.addEventListener('click', async () => {
-                if (!selectedGroupForReceipt) {
-                    alert('영수증을 추가할 그룹을 선택하세요.');
-                    return;
-                }
-                const items = Array.from(receiptItemsTableBody.rows).map(row => {
-                    const participants = Array.from(row.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
-                    return {
-                        name: row.cells[0].querySelector('input').value,
-                        price: parseInt(row.cells[1].querySelector('input').value) || 0,
-                        participants: participants
-                    };
-                });
-
+                if (!state.selectedGroupForReceipt) return alert('영수증을 추가할 그룹을 선택하세요.');
+                const items = Array.from(receiptItemsTableBody.rows).map(row => ({
+                    name: row.cells[0].querySelector('input').value,
+                    price: parseInt(row.cells[1].querySelector('input').value) || 0,
+                    participants: Array.from(row.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value)
+                }));
                 const receiptData = {
-                    groupId: selectedGroupForReceipt,
+                    groupId: state.selectedGroupForReceipt,
                     payerId: payerSelect.value,
                     storeName: storeNameInput.value,
                     transactionDate: transactionDateInput.value,
                     totalAmount: parseInt(totalAmountInput.value) || 0,
                     items: items
                 };
-
-                if (!receiptData.payerId) {
-                    alert('결제자를 선택하세요.');
-                    return;
-                }
-
-                await api.post('/receipts', receiptData);
+                if (!receiptData.payerId) return alert('결제자를 선택하세요.');
+                await apiCall('/receipts', 'POST', receiptData);
                 alert('영수증이 제출되었습니다.');
                 loadReceiptsBtn.click();
-                // Clear form
                 storeNameInput.value = '';
                 transactionDateInput.value = '';
                 totalAmountInput.value = '';
@@ -516,27 +556,21 @@
             });
 
             async function parseAndFillOcr(file) {
-                if (!selectedGroupForReceipt) {
-                    alert('영수증을 추가할 그룹을 먼저 선택하세요.');
-                    return;
-                }
+                if (!state.selectedGroupForReceipt) return alert('영수증을 추가할 그룹을 먼저 선택하세요.');
                 const formData = new FormData();
                 formData.append('file', file);
-
                 ocrSpinner.classList.remove('d-none');
                 try {
-                    const data = await api.postForm('/ocr/parse', formData);
+                    const data = await apiCallForm('/ocr/parse', formData);
                     storeNameInput.value = data.storeName || '';
                     transactionDateInput.value = data.transactionDate ? data.transactionDate.split('T')[0] : '';
                     totalAmountInput.value = data.totalAmount || '';
-
                     receiptItemsTableBody.innerHTML = '';
                     if (data.items && data.items.length > 0) {
                         data.items.forEach(item => addReceiptItemRow(item));
                     } else {
                         addReceiptItemRow({ name: '전체', price: data.totalAmount || 0, participants: [] });
                     }
-
                     alert('OCR 분석 완료! 내용을 확인하고 제출하세요.');
                     document.getElementById('nav-manual-tab').click();
                 } catch (error) {
@@ -548,19 +582,15 @@
             }
 
             ocrParseBtn.addEventListener('click', () => {
-                if (!ocrFile.files[0]) {
-                    alert('OCR 분석할 파일을 선택하세요.');
-                    return;
-                }
+                if (!ocrFile.files[0]) return alert('OCR 분석할 파일을 선택하세요.');
                 parseAndFillOcr(ocrFile.files[0]);
             });
 
-            // --- Camera OCR Logic ---
             startCameraBtn.addEventListener('click', async () => {
-                if (cameraStream) return;
+                if (state.cameraStream) return;
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                    cameraStream = stream;
+                    state.cameraStream = stream;
                     videoElement.srcObject = stream;
                     cameraContainer.classList.remove('d-none');
                     startCameraBtn.classList.add('d-none');
@@ -571,9 +601,9 @@
             });
 
             function stopCamera() {
-                if (cameraStream) {
-                    cameraStream.getTracks().forEach(track => track.stop());
-                    cameraStream = null;
+                if (state.cameraStream) {
+                    state.cameraStream.getTracks().forEach(track => track.stop());
+                    state.cameraStream = null;
                     cameraContainer.classList.add('d-none');
                     startCameraBtn.classList.remove('d-none');
                 }
@@ -586,7 +616,6 @@
                 canvasElement.height = videoElement.videoHeight;
                 const context = canvasElement.getContext('2d');
                 context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-
                 canvasElement.toBlob(async (blob) => {
                     const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
                     await parseAndFillOcr(file);
@@ -594,114 +623,80 @@
                 }, 'image/jpeg');
             });
 
-
             // --- Settlement Panel Logic ---
             settlementGroupSelect.addEventListener('change', async (e) => {
-                selectedGroupForSettlement = e.target.value;
+                state.selectedGroupForSettlement = e.target.value;
                 settlementSelect.innerHTML = '';
                 unsettledReceiptsList.innerHTML = '';
-                if (!selectedGroupForSettlement) return;
-
-                const receipts = await api.get(`/groups/${selectedGroupForSettlement}/receipts`);
+                if (!state.selectedGroupForSettlement) return;
+                const receipts = await apiCall(`/groups/${state.selectedGroupForSettlement}/receipts`);
                 const unsettledReceipts = receipts.filter(r => !r.settlementId);
-
                 unsettledReceipts.forEach(r => {
                     const div = document.createElement('div');
                     div.className = 'list-group-item';
-                    div.innerHTML = `
-                        <input class="form-check-input me-1" type="checkbox" value="${r.id}" id="receipt-check-${r.id}">
-                        <label class="form-check-label" for="receipt-check-${r.id}">${r.storeName} - ${r.totalAmount}원</label>
-                    `;
+                    div.innerHTML = `<input class="form-check-input me-1" type="checkbox" value="${r.id}" id="receipt-check-${r.id}"><label class="form-check-label" for="receipt-check-${r.id}">${r.storeName} - ${r.totalAmount}원</label>`;
                     unsettledReceiptsList.appendChild(div);
                 });
             });
 
             createSettlementBtn.addEventListener('click', async () => {
                 const settlementName = settlementNameInput.value;
-                if (!selectedGroupForSettlement || !settlementName) {
-                    alert('그룹을 선택하고 정산 이름을 입력하세요.');
-                    return;
-                }
-                const result = await api.post('/settlements', {
-                    settlementName: settlementName,
-                    groupId: selectedGroupForSettlement
-                });
+                if (!state.selectedGroupForSettlement || !settlementName) return alert('그룹을 선택하고 정산 이름을 입력하세요.');
+                const result = await apiCall('/settlements', 'POST', { settlementName, groupId: state.selectedGroupForSettlement });
                 const option = new Option(`${result.settlementName} (ID: ${result.settlementId})`, result.settlementId);
                 settlementSelect.add(option);
                 settlementSelect.value = result.settlementId;
-                selectedSettlementId = result.settlementId;
-                alert('정산이 생성되었습니다. 영수증을 선택하고 계산하세요.');
+                state.selectedSettlementId = result.settlementId;
+                alert('정산이 생성되었습니다.');
             });
 
-            settlementSelect.addEventListener('change', (e) => {
-                selectedSettlementId = e.target.value;
-            });
+            settlementSelect.addEventListener('change', (e) => { state.selectedSettlementId = e.target.value; });
 
             calculateSettlementBtn.addEventListener('click', async () => {
                 const selectedReceiptIds = Array.from(unsettledReceiptsList.querySelectorAll('input:checked')).map(cb => cb.value);
-                if (!selectedSettlementId || selectedReceiptIds.length === 0) {
-                    alert('정산을 선택하고, 포함할 영수증을 1개 이상 선택하세요.');
-                    return;
-                }
-
-                const result = await api.post(`/settlements/${selectedSettlementId}/calculate`, {
-                    receiptIds: selectedReceiptIds
-                });
-
+                if (!state.selectedSettlementId || selectedReceiptIds.length === 0) return alert('정산을 선택하고, 포함할 영수증을 1개 이상 선택하세요.');
+                const result = await apiCall(`/settlements/${state.selectedSettlementId}/calculate`, 'POST', { receiptIds: selectedReceiptIds });
                 let resultHtml = '<h6>사용자별 정산 금액:</h6><ul class="list-group mb-3">';
-                const memberPromises = Object.keys(result.userBalances).map(id => api.get(`/users/${id}`));
+                const memberIds = Object.keys(result.userBalances);
+                const memberPromises = memberIds.map(id => apiCall(`/users/${id}`));
                 const members = await Promise.all(memberPromises);
-                const memberMap = new Map(members.map(m => [m.id, m.username]));
-
+                const memberMap = new Map(members.map(m => [m.id, m.nickname]));
                 for (const [userId, amount] of Object.entries(result.userBalances)) {
-                    const username = memberMap.get(userId) || `User ${userId}`;
+                    const nickname = memberMap.get(userId) || `User ${userId}`;
                     let badgeClass, label, displayAmount;
-
-                    if (amount > 0.01) {
-                        badgeClass = 'bg-success';
-                        label = '받을 돈:';
-                        displayAmount = `+${amount.toFixed(2)}`;
-                    } else if (amount < -0.01) {
-                        badgeClass = 'bg-danger';
-                        label = '낼 돈:';
-                        displayAmount = `${amount.toFixed(2)}`;
-                    } else {
-                        badgeClass = 'bg-secondary';
-                        label = '정산 완료:';
-                        displayAmount = '0.00';
-                    }
-
-                    resultHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
-                        ${username}
-                        <span class="badge ${badgeClass} rounded-pill">${label} ${displayAmount}원</span>
-                    </li>`;
+                    if (amount > 0.01) { badgeClass = 'bg-success'; label = '받을 돈:'; displayAmount = `+${amount.toFixed(2)}`; }
+                    else if (amount < -0.01) { badgeClass = 'bg-danger'; label = '낼 돈:'; displayAmount = `${amount.toFixed(2)}`; }
+                    else { badgeClass = 'bg-secondary'; label = '정산 완료:'; displayAmount = '0.00'; }
+                    resultHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">${nickname}<span class="badge ${badgeClass} rounded-pill">${label} ${displayAmount}원</span></li>`;
                 }
                 resultHtml += '</ul><h6>송금 목록:</h6><ul class="list-group">';
                 result.transactions.forEach(tx => {
-                    const fromUser = memberMap.get(tx.fromUserId) || `User ${tx.fromUserId}`;
-                    const toUser = memberMap.get(tx.toUserId) || `User ${tx.toUserId}`;
+                    const fromUser = memberMap.get(tx.fromUser) || `User ${tx.fromUser}`;
+                    const toUser = memberMap.get(tx.toUser) || `User ${tx.toUser}`;
                     resultHtml += `<li class="list-group-item">${fromUser} → ${toUser}: ${tx.amount.toFixed(2)}원</li>`;
                 });
                 resultHtml += '</ul>';
-
                 settlementResult.innerHTML = resultHtml;
-
-                // Refresh unsettled receipts list
                 settlementGroupSelect.dispatchEvent(new Event('change'));
             });
 
-
-            // --- Initial Load ---
-            async function initialize() {
-                await loadUsers();
-                await loadGroups();
-                transactionDateInput.valueAsDate = new Date();
-            }
-
+            // --- Event Listeners ---
+            document.getElementById('signup-form').addEventListener('submit', handleSignup);
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            logoutBtn.addEventListener('click', updateUIForLogout);
             loadUsersBtn.addEventListener('click', loadUsers);
             loadGroupsBtn.addEventListener('click', loadGroups);
+            document.getElementById('create-group-form').addEventListener('submit', handleCreateGroup);
+            document.getElementById('invite-form').addEventListener('submit', handleInvite);
+            fetchInvitationsBtn.addEventListener('click', fetchPendingInvitations);
 
-            initialize();
+            // --- Initializer ---
+            function initializeMainApp() {
+                loadUsers();
+                loadGroups();
+                fetchPendingInvitations();
+                transactionDateInput.valueAsDate = new Date();
+            }
         });
     </script>
 </body>
