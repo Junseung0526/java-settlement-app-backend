@@ -23,7 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-public class OcrService {
+public class    OcrService {
 
     @Value("${tesseract.datapath}")
     private String tessDataPath;
