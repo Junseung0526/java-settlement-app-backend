@@ -138,4 +138,21 @@ public class ReceiptService {
         });
         return future;
     }
+
+    public CompletableFuture<List<Receipt>> removeReceipts(List<String> receiptIds) {
+        CompletableFuture<List<Receipt>> future = new CompletableFuture<>();
+        DatabaseReference receiptsRef = firebaseDatabase.getReference(RECEIPTS_PATH);
+        Map<String, Object> updates = new HashMap<>();
+        for (String receiptId : receiptIds) {
+            updates.put(receiptId, null);
+        }
+        receiptsRef.updateChildren(updates, (databaseError, databaseReference) -> {
+            if (databaseError != null) {
+                future.completeExceptionally(databaseError.toException());
+            } else {
+                future.complete(new ArrayList<>());
+            }
+        });
+        return future;
+    }
 }
