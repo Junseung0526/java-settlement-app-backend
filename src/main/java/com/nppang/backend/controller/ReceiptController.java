@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -44,6 +45,27 @@ public class ReceiptController {
             return ResponseEntity.ok(receipts);
         } catch (Exception ex) {
             return ResponseEntity.badRequest().build(); // Or more specific error handling
+        }
+    }
+
+    @DeleteMapping("/receipts/{receiptId}")
+    public ResponseEntity<Void> deleteReceipt(@PathVariable String receiptId) {
+        try {
+            // Service의 removeReceipts가 List를 받으므로 리스트로 감싸서 전달
+            receiptService.removeReceipts(Collections.singletonList(receiptId)).join();
+            return ResponseEntity.ok().build();
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @DeleteMapping("/receipts")
+    public ResponseEntity<Void> deleteReceipts(@RequestBody List<String> receiptIds) {
+        try {
+            receiptService.removeReceipts(receiptIds).join();
+            return ResponseEntity.ok().build();
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().build();
         }
     }
 }
