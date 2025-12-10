@@ -28,7 +28,7 @@ public class GroupService {
     private final UserService userService;
 
     // 새로운 그룹을 생성하고 ID를 부여
-    public CompletableFuture<UserGroup> createGroup(String name) {
+    public CompletableFuture<UserGroup> createGroup(String name, String creatorId) {
         DatabaseReference counterRef = firebaseDatabase.getReference("counters/groups");
         CompletableFuture<UserGroup> future = new CompletableFuture<>();
 
@@ -54,6 +54,11 @@ public class GroupService {
                     UserGroup userGroup = new UserGroup();
                     userGroup.setId(String.valueOf(newId));
                     userGroup.setName(name);
+
+                    // Add the creator as the first member
+                    Map<String, Boolean> members = new HashMap<>();
+                    members.put(creatorId, true);
+                    userGroup.setMembers(members);
 
                     newGroupRef.setValueAsync(userGroup);
                     future.complete(userGroup);
@@ -88,6 +93,12 @@ public class GroupService {
             DatabaseReference membersRef = firebaseDatabase.getReference("groups").child(groupId).child("members");
             return CompletableFuture.runAsync(() -> membersRef.child(appUser.getId()).setValueAsync(true));
         });
+    }
+
+    // 특정 그룹에 사용자를 멤버로 추가 (ID 사용)
+    public CompletableFuture<Void> addMemberById(String groupId, String userId) {
+        DatabaseReference membersRef = firebaseDatabase.getReference("groups").child(groupId).child("members");
+        return CompletableFuture.runAsync(() -> membersRef.child(userId).setValueAsync(true));
     }
 
     // 특정 그룹에서 멤버를 삭제

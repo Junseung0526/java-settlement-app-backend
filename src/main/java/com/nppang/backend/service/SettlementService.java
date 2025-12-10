@@ -6,11 +6,14 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.nppang.backend.dto.CalculationResultDto;
+import com.nppang.backend.dto.TransactionDto;
 import com.nppang.backend.entity.Receipt;
 import com.nppang.backend.entity.Settlement;
+import com.nppang.backend.entity.SettlementTransaction;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -64,13 +67,67 @@ public class SettlementService {
             if (settlement == null) {
                 throw new IllegalStateException("Settlement not found");
             }
-            // Call the calculation logic
+
             return nppangService.calculateSettlement(settlement, receipts)
-                    .thenCompose(result ->
-                            // After calculation, update the settlementId on all used receipts
-                            receiptService.updateSettlementIdForReceipts(receiptIds, settlementId)
-                                    .thenApply(v -> result) // Return the original calculation result
-                    );
+                    .thenCompose(result -> {
+                        // 2. 영수증에 정산 ID 업데이트 (기존 로직)
+                        CompletableFuture<Void> updateReceiptsFuture = receiptService.updateSettlementIdForReceipts(receiptIds, settlementId);
+
+                        // 3. [추가됨] 계산된 송금 내역(Transaction)을 DB에 저장
+                        CompletableFuture<Void> saveTransactionsFuture = saveTransactions(settlementId, result.getTransactions());
+
+                        // 두 작업(영수증 업데이트, 트랜잭션 저장)이 모두 끝나면 결과 반환
+                        return CompletableFuture.allOf(updateReceiptsFuture, saveTransactionsFuture)
+                                .thenApply(v -> result);
+                    });
         }).thenCompose(future -> future);
+    }
+
+    private CompletableFuture<Void> saveTransactions(String settlementId, List<TransactionDto> transactionDtos) {
+        DatabaseReference transactionsRef = firebaseDatabase.getReference("settlement_transactions").child(settlementId);
+
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (TransactionDto dto : transactionDtos) {
+            DatabaseReference newTransRef = transactionsRef.push(); // 고유 ID 생성
+
+            SettlementTransaction transaction = SettlementTransaction.builder()
+                    .id(newTransRef.getKey())
+                    .settlementId(settlementId)
+                    .fromUserId(dto.getFromUser())
+                    .toUserId(dto.getToUser())
+                    .amount(dto.getAmount())
+                    .isPaid(false) // 초기 상태는 미입금
+                    .build();
+
+            // 비동기로 저장
+            futures.add(CompletableFuture.runAsync(() -> {
+                newTransRef.setValueAsync(transaction);
+            }));
+        }
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+    }
+
+    // 저장된 송금 내역 조회
+    public CompletableFuture<List<SettlementTransaction>> getTransactions(String settlementId) {
+        DatabaseReference ref = firebaseDatabase.getReference("settlement_transactions").child(settlementId);
+        CompletableFuture<List<SettlementTransaction>> future = new CompletableFuture<>();
+
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                List<SettlementTransaction> list = new ArrayList<>();
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    list.add(snapshot.getValue(SettlementTransaction.class));
+                }
+                future.complete(list);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                future.completeExceptionally(error.toException());
+            }
+        });
+        return future;
     }
 }

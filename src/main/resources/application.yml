@@ -27,3 +27,7 @@ firebase:
 jwt:
   expiration-ms: 86400000 # 24시간 (1일)
   secret: ${JWT_SECRET_KEY}
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  api-url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent

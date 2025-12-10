@@ -3,6 +3,7 @@ package com.nppang.backend.controller;
 import com.nppang.backend.dto.*;
 import com.nppang.backend.entity.Receipt;
 import com.nppang.backend.entity.Settlement;
+import com.nppang.backend.entity.SettlementTransaction;
 import com.nppang.backend.service.ReceiptService;
 import com.nppang.backend.service.SettlementService;
 
@@ -85,6 +86,17 @@ public class SettlementController {
         try {
             CalculationResultDto result = settlementService.calculateAndFinalizeSettlement(settlementId, request.getReceiptIds()).join();
             return ResponseEntity.ok(result);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    // 저장된 송금 내역 조회 API
+    @GetMapping("/{settlementId}/transactions")
+    public ResponseEntity<List<SettlementTransaction>> getSettlementTransactions(@PathVariable String settlementId) {
+        try {
+            List<SettlementTransaction> transactions = settlementService.getTransactions(settlementId).join();
+            return ResponseEntity.ok(transactions);
         } catch (Exception ex) {
             return ResponseEntity.status(500).build();
         }

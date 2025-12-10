@@ -8,6 +8,7 @@ import com.nppang.backend.entity.UserGroup;
 import com.nppang.backend.service.GroupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication; // Added this import
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,9 +22,10 @@ public class GroupController {
 
     // 새로운 그룹을 생성하는 API
     @PostMapping
-    public ResponseEntity<UserGroup> createGroup(@RequestBody CreateGroupRequest request) {
+    public ResponseEntity<UserGroup> createGroup(@RequestBody CreateGroupRequest request, Authentication authentication) {
         try {
-            UserGroup group = groupService.createGroup(request.getName()).join();
+            String creatorId = (String) authentication.getPrincipal();
+            UserGroup group = groupService.createGroup(request.getName(), creatorId).join();
             return ResponseEntity.ok(group);
         } catch (Exception ex) {
             return ResponseEntity.badRequest().build();

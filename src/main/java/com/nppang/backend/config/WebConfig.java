@@ -14,7 +14,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "http://localhost:3000", // React default
                         "http://localhost:5173",  // Vite default
                         "http://localhost:8080",
-                        "https://settlment-app-production.up.railway.app"
+                        "https://settlment-app-production.up.railway.app",
+                        "https://port-0-java-settlement-app-backend-min4a5ul17a5f4f0.sel3.cloudtype.app/"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "HEAD")
                 .allowedHeaders("*");

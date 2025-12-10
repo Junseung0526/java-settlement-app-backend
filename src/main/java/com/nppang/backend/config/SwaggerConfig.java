@@ -17,7 +17,7 @@ public class SwaggerConfig {
 
     @Bean
     public OpenAPI openAPI() {
-        String railwayServerUrl = "https://settlment-app-production.up.railway.app/";
+        String railwayServerUrl = "https://port-0-java-settlement-app-backend-min4a5ul17a5f4f0.sel3.cloudtype.app/";
 
         String localServerUrl = "http://localhost:8080";
 

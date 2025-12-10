@@ -18,7 +18,7 @@ public class OcrController {
     private final OcrService ocrService;
 
     // OCR로 영수증 이미지를 분석하는 API
-    @PostMapping("/parse")
+    @PostMapping(value = "/parse", consumes = "multipart/form-data")
     public ResponseEntity<ReceiptDto> parseReceipt(@RequestParam("file") MultipartFile file) {
         try {
             ReceiptDto receiptDto = ocrService.doOcrAndParse(file);
